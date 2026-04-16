@@ -1,0 +1,392 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { Timer } from '../components/Timer'
+import { PhaseIndicator } from '../components/PhaseIndicator'
+import { Controls } from '../components/Controls'
+import { CycleProgress } from '../components/CycleProgress'
+import { usePomodoro } from '../hooks/usePomodoro'
+import { useBinauralBeats } from '../hooks/useBinauralBeats'
+import { useNoise } from '../hooks/useNoise'
+import { useMelody } from '../hooks/useMelody'
+import { usePing } from '../hooks/usePing'
+import { buildSchedule } from '../utils/phaseSchedule'
+import type { SessionConfig, PhaseSegment, PhaseType } from '../types'
+import { DEFAULT_SESSION_CONFIG } from '../types'
+import { PHASE_LABELS, PHASE_HZ, PHASE_COLORS } from '../data/recommendations'
+
+// ─── Audio mode ───────────────────────────────────────────────────────────────
+
+type AudioMode = 'noise' | 'melody' | 'off'
+
+const AUDIO_MODE_KEY = 'pmg_audio_mode'
+
+const MODE_LABELS: Record<AudioMode, string> = {
+  noise:  'Brown noise',
+  melody: 'Melody',
+  off:    'Audio off',
+}
+
+const MODE_ICONS: Record<AudioMode, string> = {
+  noise:  '🌊',
+  melody: '🎵',
+  off:    '🔇',
+}
+
+// Break-specific label overrides
+const BREAK_MODE_LABELS: Record<AudioMode, string> = {
+  noise:  'Rainfall',
+  melody: 'Melody',
+  off:    'Audio off',
+}
+
+const MODE_CYCLE: AudioMode[] = ['noise', 'melody', 'off']
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export function SessionPlayer() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const config: SessionConfig =
+    (location.state as { config?: SessionConfig } | null)?.config ?? DEFAULT_SESSION_CONFIG
+
+  const segments = useRef(buildSchedule(config)).current
+  const { start: startBeats, stop: stopBeats, suspend: suspendBeats, resumeCtx: resumeBeats } = useBinauralBeats()
+  const { start: startNoise, stop: stopNoise, suspend: suspendNoise, resumeCtx: resumeNoise, setVolume: setVolumeNoise } = useNoise()
+  const { start: startMelody, stop: stopMelody, suspend: suspendMelody, resumeCtx: resumeMelody, setVolume: setVolumeMelody } = useMelody()
+  const ping = usePing()
+
+  const [audioMode, setAudioMode] = useState<AudioMode>(
+    () => (localStorage.getItem(AUDIO_MODE_KEY) as AudioMode | null) ?? 'melody'
+  )
+  const audioModeRef = useRef(audioMode)
+  audioModeRef.current = audioMode
+
+  const VOLUME_KEY = 'pmg_ambient_volume'
+  const [ambientVolume, setAmbientVolume] = useState<number>(
+    () => Number(localStorage.getItem(VOLUME_KEY) ?? 0.8)
+  )
+
+  useEffect(() => {
+    localStorage.setItem(VOLUME_KEY, String(ambientVolume))
+    setVolumeNoise(ambientVolume)
+    setVolumeMelody(ambientVolume)
+  }, [ambientVolume]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function startAmbient(phase: PhaseType) {
+    const mode = audioModeRef.current
+    if (mode === 'noise')  startNoise(phase)
+    if (mode === 'melody') startMelody(phase)
+  }
+
+  function stopAmbient() {
+    stopNoise()
+    stopMelody()
+  }
+
+  const handlePhaseChange = useCallback(
+    (segment: PhaseSegment, prev: PhaseSegment | null) => {
+      // prev === null is the initial mount call before the session starts.
+      // Audio for the first phase is started explicitly in handleStart.
+      if (prev === null) return
+      ping()
+      startBeats(segment.phase)
+      startAmbient(segment.phase)
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [startBeats, ping],
+  )
+
+  const handleComplete = useCallback(() => {
+    stopBeats()
+    stopAmbient()
+  }, [stopBeats, stopNoise, stopMelody]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const { state, currentSegment, start, pause, resume, skipPhase, extendBreak, jumpToSegment, seekInSegment } =
+    usePomodoro({
+      segments,
+      onPhaseChange: handlePhaseChange,
+      onComplete: handleComplete,
+    })
+
+  useEffect(() => {
+    if (state.isPaused) {
+      suspendBeats()
+      suspendNoise()
+      suspendMelody()
+    }
+  }, [state.isPaused, suspendBeats, suspendNoise, suspendMelody])
+
+  // Kill all audio on unmount
+  useEffect(() => {
+    return () => {
+      stopBeats()
+      stopNoise()
+      stopMelody()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Swap ambient layer when mode changes mid-session
+  useEffect(() => {
+    localStorage.setItem(AUDIO_MODE_KEY, audioMode)
+    if (!state.isRunning) return
+    const phase = currentSegment?.phase ?? 'focus'
+    stopNoise(true)   // immediate — user actively switched, no overlap
+    stopMelody(true)
+    if (audioMode === 'noise')  startNoise(phase)
+    if (audioMode === 'melody') startMelody(phase)
+  }, [audioMode]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleStart() {
+    start()
+    startBeats(segments[0].phase)
+    startAmbient(segments[0].phase)
+  }
+
+  function handleResume() {
+    resume()
+    resumeBeats()
+    if (audioMode === 'noise')  resumeNoise()
+    if (audioMode === 'melody') resumeMelody()
+  }
+
+  function cycleMode() {
+    setAudioMode(m => {
+      const next = MODE_CYCLE[(MODE_CYCLE.indexOf(m) + 1) % MODE_CYCLE.length]
+      return next
+    })
+  }
+
+  const [debugOpen, setDebugOpen] = useState(false)
+
+  const isBreak = currentSegment?.phase === 'shortBreak' || currentSegment?.phase === 'longBreak'
+  const cycleIndex = currentSegment?.cycleIndex ?? 0
+  const completedCycles = segments
+    .slice(0, state.segmentIndex)
+    .filter(s => s.phase === 'cooldown')
+    .length
+
+  if (state.isComplete) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center gap-6">
+        <div className="text-6xl">🎉</div>
+        <h1 className="text-3xl font-bold text-white">Session Complete!</h1>
+        <p className="text-slate-400">
+          You completed {config.totalCycles} Pomodoro cycle{config.totalCycles !== 1 ? 's' : ''}. Great work!
+        </p>
+        <button
+          onClick={() => navigate('/')}
+          className="px-8 py-3 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors"
+        >
+          Back to Home
+        </button>
+        <a
+          href="https://www.buymeacoffee.com/Gobaan"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-900/40 border border-violet-700/50 text-violet-300 text-xs font-medium transition-colors hover:bg-violet-800/50"
+        >
+          ☕ Buy me a coffee
+        </a>
+      </div>
+    )
+  }
+
+  const modeLabel = isBreak ? BREAK_MODE_LABELS[audioMode] : MODE_LABELS[audioMode]
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 gap-10">
+
+      {/* Headphones reminder — shown only before session starts */}
+      {!state.isRunning && !state.isPaused && (
+        <div className="flex items-center gap-2 bg-amber-950/40 border border-amber-700/40 rounded-full px-4 py-2">
+          <span className="text-base">🎧</span>
+          <p className="text-xs text-amber-200/80">Put on stereo headphones for binaural beats</p>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex flex-col items-center gap-1 text-center">
+        <h1 className="text-lg font-semibold text-slate-400">Pomodoro Session</h1>
+        <CycleProgress
+          totalCycles={config.totalCycles}
+          currentCycleIndex={cycleIndex}
+          completedCycles={completedCycles}
+        />
+      </div>
+
+      {/* Timer */}
+      <div className="flex flex-col items-center gap-6">
+        {currentSegment && (
+          <Timer
+            phase={currentSegment.phase}
+            timeRemainingSeconds={state.timeRemainingSeconds}
+            totalSeconds={currentSegment.durationSeconds}
+            isRunning={state.isRunning}
+          />
+        )}
+        {currentSegment && <PhaseIndicator phase={currentSegment.phase} />}
+      </div>
+
+      {/* Controls */}
+      <Controls
+        isRunning={state.isRunning}
+        isPaused={state.isPaused}
+        isBreak={isBreak}
+        onStart={handleStart}
+        onPause={pause}
+        onResume={handleResume}
+        onSkip={skipPhase}
+        onExtendBreak={extendBreak}
+      />
+
+      {/* Phase timeline */}
+      {segments.length > 0 && (
+        <div className="w-full max-w-sm flex flex-col gap-1">
+          <p className="text-xs text-slate-500 text-center mb-2">Session Overview</p>
+          <div className="flex gap-1">
+            {segments.map((seg, i) => (
+              <div
+                key={i}
+                title={PHASE_LABELS[seg.phase]}
+                className={`h-1.5 rounded-full flex-1 transition-colors ${
+                  i < state.segmentIndex
+                    ? 'bg-violet-600'
+                    : i === state.segmentIndex
+                    ? 'bg-violet-400'
+                    : 'bg-white/10'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Audio mode toggle */}
+      <button
+        onClick={cycleMode}
+        className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-medium transition-colors ${
+          audioMode === 'off'
+            ? 'bg-white/5 border-white/10 text-slate-500'
+            : audioMode === 'melody'
+            ? 'bg-violet-900/40 border-violet-700/50 text-violet-300'
+            : 'bg-teal-900/40 border-teal-700/50 text-teal-300'
+        }`}
+      >
+        <span>{MODE_ICONS[audioMode]}</span>
+        {modeLabel}
+      </button>
+
+      {/* Ambient volume slider */}
+      {audioMode !== 'off' && (
+        <div className="flex items-center gap-3 w-full max-w-xs">
+          <span className="text-slate-500 text-sm">🔈</span>
+          <input
+            type="range"
+            min={0} max={1} step={0.01}
+            value={ambientVolume}
+            onChange={e => setAmbientVolume(Number(e.target.value))}
+            className="flex-1 accent-violet-500 cursor-pointer"
+          />
+          <span className="text-slate-500 text-sm">🔊</span>
+        </div>
+      )}
+
+      {/* Back link */}
+      <button
+        onClick={() => {
+          if (confirm('End session and go back?')) {
+            stopBeats()
+            stopAmbient()
+            navigate('/config')
+          }
+        }}
+        className="text-sm text-slate-600 hover:text-slate-400 transition-colors"
+      >
+        End session
+      </button>
+
+      {/* Debug panel — dev only */}
+      {import.meta.env.DEV && (
+        <div className="w-full max-w-sm">
+          <button
+            onClick={() => setDebugOpen(o => !o)}
+            className="w-full text-xs text-slate-600 hover:text-slate-400 transition-colors py-1 flex items-center justify-center gap-1"
+          >
+            <span>{debugOpen ? '▲' : '▼'}</span> Test / Debug
+          </button>
+
+          {debugOpen && (
+            <div className="mt-2 rounded-xl border border-slate-700 bg-slate-900 overflow-hidden">
+              {currentSegment && (() => {
+                const dur = currentSegment.durationSeconds
+                const elapsed = dur - state.timeRemainingSeconds
+                const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+                const seek = (toElapsed: number) => {
+                  const clamped = Math.max(0, Math.min(dur - 1, toElapsed))
+                  seekInSegment(clamped)
+                }
+                return (
+                  <div className="px-4 py-3 border-b border-slate-700 bg-slate-800/60 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm font-semibold ${PHASE_COLORS[currentSegment.phase]}`}>
+                        {PHASE_LABELS[currentSegment.phase]}
+                      </span>
+                      <span className="text-xs font-mono text-slate-400">{PHASE_HZ[currentSegment.phase]}</span>
+                    </div>
+                    <div className="text-xs text-slate-500 font-mono">
+                      stage: {currentSegment.stageKey} &nbsp;·&nbsp; base offset: {currentSegment.startOffsetSeconds}s
+                    </div>
+                    <input
+                      type="range" min={0} max={dur} value={elapsed}
+                      onChange={e => seek(Number(e.target.value))}
+                      className="w-full accent-violet-500 cursor-pointer"
+                    />
+                    <div className="flex items-center justify-between text-xs font-mono text-slate-500">
+                      <span>{fmt(elapsed)} elapsed</span>
+                      <span>{fmt(state.timeRemainingSeconds)} left</span>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {[1, 2, 5, 10].map(m => (
+                        <button key={m} onClick={() => seek(m * 60)}
+                          className="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-xs font-mono transition-colors">
+                          +{m}m
+                        </button>
+                      ))}
+                      <button onClick={() => seek(0)}
+                        className="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-xs font-mono transition-colors">
+                        ↩ start
+                      </button>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              <div className="max-h-64 overflow-y-auto divide-y divide-slate-800">
+                {segments.map((seg, i) => {
+                  const isActive = i === state.segmentIndex
+                  return (
+                    <button key={i} onClick={() => jumpToSegment(i)}
+                      className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors cursor-pointer
+                        ${isActive ? 'bg-violet-900/40' : 'hover:bg-slate-800'}`}
+                    >
+                      <span className="text-xs font-mono text-slate-600 w-4 shrink-0">{i + 1}</span>
+                      <span className={`text-xs flex-1 ${isActive ? PHASE_COLORS[seg.phase] : 'text-slate-300'}`}>
+                        {PHASE_LABELS[seg.phase]}
+                        <span className="ml-1 text-slate-600">C{seg.cycleIndex + 1}</span>
+                      </span>
+                      <span className="text-xs font-mono text-slate-500 shrink-0">{PHASE_HZ[seg.phase]}</span>
+                      <span className="text-xs font-mono text-slate-600 shrink-0">
+                        {Math.floor(seg.startOffsetSeconds / 60)}:{String(seg.startOffsetSeconds % 60).padStart(2, '0')}
+                      </span>
+                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}

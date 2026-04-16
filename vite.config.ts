@@ -7,7 +7,7 @@ export default defineConfig({
   base: '/pomodoro/',
   server: {
     proxy: {
-      '/api': 'http://localhost:3001',
+      '/pomodoro/api': 'http://localhost:3001',
     },
   },
 })

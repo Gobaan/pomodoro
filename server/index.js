@@ -1,14 +1,17 @@
 import express from 'express'
 import nodemailer from 'nodemailer'
 
-const PORT = process.env.PORT ?? 3001
-const TO   = 'hi+pomodoro@gobaaan.com'
+const PORT = process.env.PORT     ?? 3001
+const TO   = process.env.FEEDBACK_TO  // set in environment — not committed to repo
+
+if (!TO) {
+  console.error('FEEDBACK_TO env var is required')
+  process.exit(1)
+}
 
 const app = express()
 app.use(express.json())
 
-// Use the system sendmail binary — works on any Linode with postfix/sendmail installed.
-// No SMTP credentials needed.
 const transporter = nodemailer.createTransport({
   sendmail: true,
   newline: 'unix',
@@ -16,17 +19,20 @@ const transporter = nodemailer.createTransport({
 })
 
 app.post('/pomodoro/api/feedback', async (req, res) => {
-  const { message } = req.body ?? {}
-  if (!message?.trim()) {
-    return res.status(400).json({ error: 'message is required' })
-  }
+  const { message, email } = req.body ?? {}
+  if (!message?.trim()) return res.status(400).json({ error: 'message is required' })
+
+  const body = email?.trim()
+    ? `From: ${email.trim()}\n\n${message.trim()}`
+    : message.trim()
 
   try {
     await transporter.sendMail({
-      from: 'pomodoro-app@gobaan.com',
-      to:   TO,
+      from:    'pomodoro-app@gobaan.com',
+      to:      TO,
+      replyTo: email?.trim() || undefined,
       subject: 'Pomodoro app feedback',
-      text: message.trim(),
+      text:    body,
     })
     res.json({ ok: true })
   } catch (err) {

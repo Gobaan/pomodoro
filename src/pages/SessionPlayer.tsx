@@ -48,6 +48,7 @@ type FeedbackStatus = 'idle' | 'sending' | 'sent' | 'error'
 function CompletionScreen({ totalCycles, onHome }: { totalCycles: number; onHome: () => void }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [feedbackText, setFeedbackText] = useState('')
+  const [feedbackEmail, setFeedbackEmail] = useState('')
   const [status, setStatus] = useState<FeedbackStatus>('idle')
 
   async function submitFeedback() {
@@ -57,7 +58,10 @@ function CompletionScreen({ totalCycles, onHome }: { totalCycles: number; onHome
       const res = await fetch('/pomodoro/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: feedbackText.trim() }),
+        body: JSON.stringify({
+          message: feedbackText.trim(),
+          email: feedbackEmail.trim() || undefined,
+        }),
       })
       if (!res.ok) throw new Error()
       setStatus('sent')
@@ -99,7 +103,7 @@ function CompletionScreen({ totalCycles, onHome }: { totalCycles: number; onHome
           GitHub
         </a>
         <button
-          onClick={() => { setFeedbackOpen(true); setStatus('idle'); setFeedbackText('') }}
+          onClick={() => { setFeedbackOpen(true); setStatus('idle'); setFeedbackText(''); setFeedbackEmail('') }}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-slate-400 text-xs font-medium transition-colors hover:bg-white/10"
         >
           💬 Feedback
@@ -119,10 +123,18 @@ function CompletionScreen({ totalCycles, onHome }: { totalCycles: number; onHome
             ) : (
               <>
                 <textarea
-                  className="w-full h-32 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 resize-none focus:outline-none focus:border-violet-500"
+                  className="w-full h-28 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 resize-none focus:outline-none focus:border-violet-500"
                   placeholder="What's working, what's not, ideas…"
                   value={feedbackText}
                   onChange={e => setFeedbackText(e.target.value)}
+                  disabled={status === 'sending'}
+                />
+                <input
+                  type="email"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+                  placeholder="Your email (optional — if you'd like a reply)"
+                  value={feedbackEmail}
+                  onChange={e => setFeedbackEmail(e.target.value)}
                   disabled={status === 'sending'}
                 />
                 {status === 'error' && (

@@ -13,21 +13,10 @@ if (!TO) {
 const app = express()
 app.use(express.json())
 
-const SMTP_HOST = process.env.SMTP_HOST
-const SMTP_PORT = parseInt(process.env.SMTP_PORT ?? '587', 10)
-const SMTP_USER = process.env.SMTP_USER
-const SMTP_PASS = process.env.SMTP_PASS
-
-if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-  console.error('SMTP_HOST, SMTP_USER, and SMTP_PASS env vars are required')
-  process.exit(1)
-}
-
 const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: SMTP_PORT === 465,
-  auth: { user: SMTP_USER, pass: SMTP_PASS },
+  sendmail: true,
+  newline: 'unix',
+  path: '/usr/sbin/sendmail',
 })
 
 app.post('/pomodoro/api/feedback', async (req, res) => {

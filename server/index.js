@@ -19,7 +19,7 @@ const transporter = nodemailer.createTransport({
   path: '/usr/sbin/sendmail',
 })
 
-app.post('/pomodoro/api/feedback', async (req, res) => {
+app.post('/flowbeats/api/feedback', async (req, res) => {
   const { message, email } = req.body ?? {}
   if (!message?.trim()) return res.status(400).json({ error: 'message is required' })
 

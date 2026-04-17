@@ -20,8 +20,8 @@ import type { PhaseType } from '../types'
  */
 
 const MELODY_SRC: Record<'focus' | 'break', string> = {
-  focus: '/pomodoro/audio/focus_melody.mp3',
-  break: '/pomodoro/audio/break_melody.mp3',
+  focus: '/flowbeats/audio/focus_melody.mp3',
+  break: '/flowbeats/audio/break_melody.mp3',
 }
 
 const TARGET_VOLUME = 0.9

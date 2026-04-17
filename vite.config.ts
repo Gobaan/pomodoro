@@ -4,10 +4,10 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/pomodoro/',
+  base: '/flowbeats/',
   server: {
     proxy: {
-      '/pomodoro/api': 'http://localhost:3001',
+      '/flowbeats/api': 'http://localhost:3001',
     },
   },
 })

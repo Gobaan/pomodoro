@@ -2,7 +2,7 @@
 
 A browser-based focus timer that uses scientifically-tuned binaural beats to guide your brain through structured work sessions — no ads, no accounts, no installs.
 
-**Live:** https://gobaan.com/pomodoro
+**Live:** https://gobaan.com/flowbeats
 
 ## Features
 

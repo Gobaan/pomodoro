@@ -8,9 +8,9 @@ import type { StageKey } from '../types'
  */
 
 const BACKGROUND_SRC: Record<StageKey, string> = {
-  focus:    '/pomodoro/audio/focus_background.mp3',
-  cooldown: '/pomodoro/audio/cooldown_background.mp3',
-  break:    '/pomodoro/audio/break_background.mp3',
+  focus:    '/flowbeats/audio/focus_background.mp3',
+  cooldown: '/flowbeats/audio/cooldown_background.mp3',
+  break:    '/flowbeats/audio/break_background.mp3',
 }
 
 export function useAudioPlayer() {

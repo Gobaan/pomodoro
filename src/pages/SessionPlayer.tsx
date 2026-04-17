@@ -10,6 +10,7 @@ import { useNoise } from '../hooks/useNoise'
 import { useMelody } from '../hooks/useMelody'
 import { usePing } from '../hooks/usePing'
 import { buildSchedule } from '../utils/phaseSchedule'
+import { analytics } from '../utils/analytics'
 import type { SessionConfig, PhaseSegment, PhaseType } from '../types'
 import { DEFAULT_SESSION_CONFIG } from '../types'
 import { PHASE_LABELS, PHASE_HZ, PHASE_COLORS } from '../data/recommendations'
@@ -65,6 +66,7 @@ function CompletionScreen({ totalCycles, onHome }: { totalCycles: number; onHome
       })
       if (!res.ok) throw new Error()
       setStatus('sent')
+      analytics.feedbackSubmit({ hasEmail: !!feedbackEmail.trim() })
     } catch {
       setStatus('error')
     }
@@ -222,6 +224,7 @@ export function SessionPlayer() {
   const handleComplete = useCallback(() => {
     stopBeats()
     stopAmbient()
+    analytics.sessionComplete({ cycles: config.totalCycles, audioMode: audioModeRef.current })
   }, [stopBeats, stopNoise, stopMelody]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { state, currentSegment, start, pause, resume, skipPhase, extendBreak, jumpToSegment, seekInSegment } =
@@ -263,6 +266,11 @@ export function SessionPlayer() {
     start()
     startBeats(segments[0].phase)
     startAmbient(segments[0].phase)
+    analytics.sessionStart({
+      cycles:    config.totalCycles,
+      focusMin:  config.workMinutes,
+      audioMode: audioMode,
+    })
   }
 
   function handleResume() {
@@ -275,6 +283,7 @@ export function SessionPlayer() {
   function cycleMode() {
     setAudioMode(m => {
       const next = MODE_CYCLE[(MODE_CYCLE.indexOf(m) + 1) % MODE_CYCLE.length]
+      analytics.audioModeChange({ from: m, to: next })
       return next
     })
   }
@@ -401,6 +410,11 @@ export function SessionPlayer() {
       <button
         onClick={() => {
           if (confirm('End session and go back?')) {
+            analytics.sessionAbandon({
+              segmentsComplete: state.segmentIndex,
+              segmentsTotal:    segments.length,
+              audioMode:        audioMode,
+            })
             stopBeats()
             stopAmbient()
             navigate('/config')

@@ -80,7 +80,7 @@ export function SessionConfigPage() {
             <button onClick={() => navigate('/')} className="text-slate-400 hover:text-white text-sm transition-colors">← Back</button>
           </div>
           <h1 className="text-3xl font-bold text-white">Session Settings</h1>
-          <p className="text-slate-400 text-sm">Customise the timing for each phase of your Pomodoro session.</p>
+          <p className="text-slate-400 text-sm">Customise the timing for each phase of your focus session.</p>
         </div>
 
         <div className="bg-white/5 rounded-xl p-5 border border-white/10 flex flex-col">
@@ -102,7 +102,7 @@ export function SessionConfigPage() {
 
         <div className="bg-white/5 rounded-xl p-5 border border-white/10 flex flex-col">
           <h2 className="text-base font-semibold text-white mb-1">Session Length</h2>
-          <NumField label="Total Pomodoro cycles" value={config.totalCycles} min={1} max={12} onChange={v => update('totalCycles', v)} />
+          <NumField label="Total focus cycles" value={config.totalCycles} min={1} max={12} onChange={v => update('totalCycles', v)} />
         </div>
 
         <button

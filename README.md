@@ -1,13 +1,13 @@
-# Pomodoro Binaural Music Generator
+# FlowBeats — Binaural Focus Timer
 
-A web app that guides Pomodoro work sessions using binaural beats and ambient audio — no ads, no accounts, runs entirely in your browser.
+A browser-based focus timer that uses scientifically-tuned binaural beats to guide your brain through structured work sessions — no ads, no accounts, no installs.
 
 **Live:** https://gobaan.com/pomodoro
 
 ## Features
 
-- **Pomodoro timer** — configurable focus/break durations and cycle count
 - **Binaural beats** — phase-matched Alpha (warm-up/cool-down), Beta (focus), Theta (breaks) generated via Web Audio API; requires stereo headphones
+- **Structured focus sessions** — configurable work/break durations and cycle count
 - **Ambient audio** — Brown noise for focus, rainfall for breaks, or soft piano/orchestral melodies; adjustable volume
 - **Seamless transitions** — crossfades between phases, no clicks or gaps
 - **Offline-capable** — all audio generated in-browser or served locally; no external streams

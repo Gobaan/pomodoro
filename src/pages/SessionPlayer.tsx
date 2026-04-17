@@ -77,7 +77,7 @@ function CompletionScreen({ totalCycles, onHome }: { totalCycles: number; onHome
       <div className="text-6xl">🎉</div>
       <h1 className="text-3xl font-bold text-white">Session Complete!</h1>
       <p className="text-slate-400">
-        You completed {totalCycles} Pomodoro cycle{totalCycles !== 1 ? 's' : ''}. Great work!
+        You completed {totalCycles} focus cycle{totalCycles !== 1 ? 's' : ''}. Great work!
       </p>
       <button
         onClick={onHome}
@@ -321,7 +321,7 @@ export function SessionPlayer() {
 
       {/* Header */}
       <div className="flex flex-col items-center gap-1 text-center">
-        <h1 className="text-lg font-semibold text-slate-400">Pomodoro Session</h1>
+        <h1 className="text-lg font-semibold text-slate-400">Focus Session</h1>
         <CycleProgress
           totalCycles={config.totalCycles}
           currentCycleIndex={cycleIndex}

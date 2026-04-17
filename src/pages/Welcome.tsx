@@ -11,11 +11,10 @@ export function Welcome() {
         <div className="flex flex-col items-center gap-3">
           <div className="text-6xl">🎧</div>
           <h1 className="text-4xl font-bold text-white leading-tight">
-            Pomodoro Binaural<br />Music Generator
+            FlowBeats
           </h1>
           <p className="text-slate-400 text-lg leading-relaxed">
-            Scientifically-tuned binaural beats guide your brain through each phase of the
-            Pomodoro technique — warm-up, deep focus, cool-down, and recovery.
+            Scientifically-tuned binaural beats guide your brain through each phase of your focus session — warm-up, deep work, cool-down, and recovery.
           </p>
         </div>
 

@@ -7,7 +7,7 @@ import { AudioTest } from './pages/AudioTest'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/flowbeats">
       <Routes>
         <Route path="/" element={<Welcome />} />
         <Route path="/setup" element={<MusicSetup />} />

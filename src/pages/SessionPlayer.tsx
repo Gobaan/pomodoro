@@ -491,7 +491,7 @@ export function SessionPlayer() {
     .filter(s => s.phase === 'cooldown')
     .length
 
-  if (plannerEnabled && !state.isRunning && !state.isPaused) {
+  if (plannerEnabled && !state.isRunning && !state.isPaused && !state.isComplete && !forceComplete) {
     return (
       <TaskPlanner
         tasks={tasks}

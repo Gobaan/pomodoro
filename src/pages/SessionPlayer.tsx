@@ -224,6 +224,7 @@ export function SessionPlayer() {
       // prev === null is the initial mount call before the session starts.
       // Audio for the first phase is started explicitly in handleStart.
       if (prev === null) return
+      if (forceCompleteRef.current) return
       if (shouldPingOnPhase(segment.phase)) ping()
       startBeats(segment.phase)
       startAmbient(segment.phase)
@@ -310,6 +311,8 @@ export function SessionPlayer() {
 
   const [debugOpen, setDebugOpen] = useState(false)
   const [forceComplete, setForceComplete] = useState(false)
+  const forceCompleteRef = useRef(false)
+  forceCompleteRef.current = forceComplete
 
   const isBreak = currentSegment?.phase === 'shortBreak' || currentSegment?.phase === 'longBreak'
   const cycleIndex = currentSegment?.cycleIndex ?? 0
@@ -456,6 +459,7 @@ export function SessionPlayer() {
               segmentsTotal:    segments.length,
               audioMode:        audioMode,
             })
+            pause()
             stopBeats()
             stopAmbient()
             setForceComplete(true)

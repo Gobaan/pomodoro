@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Timer } from '../components/Timer'
 import { PhaseIndicator } from '../components/PhaseIndicator'
@@ -71,6 +71,14 @@ function CompletionScreen({
   onSetActual: (id: string, actual: number) => void
   onSaveTasks: () => void
 }) {
+  const navigate = useNavigate()
+  const { getTagSummaries } = useTaskHistory()
+  const overallAccuracyPct = useMemo(() => {
+    const summaries = getTagSummaries()
+    if (summaries.length === 0) return null
+    return Math.round(summaries.reduce((s, t) => s + t.accuracyPct, 0) / summaries.length)
+  }, [getTagSummaries])
+
   const [tasksSaved, setTasksSaved] = useState(false)
   const [reminderTime, setReminderTime] = useState('')
   const [reminderStatus, setReminderStatus] = useState<'idle' | 'denied'>('idle')
@@ -159,17 +167,31 @@ function CompletionScreen({
       )}
 
       {/* Progress stats */}
-      <div className="w-full max-w-xs grid grid-cols-2 gap-3">
-        {[
-          { label: 'This week', cycles: stats.weekly.cycles, minutes: stats.weekly.focusMinutes },
-          { label: 'This month', cycles: stats.monthly.cycles, minutes: stats.monthly.focusMinutes },
-        ].map(({ label, cycles, minutes }) => (
-          <div key={label} className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-1 text-left">
-            <span className="text-xs text-slate-500">{label}</span>
-            <span className="text-2xl font-bold text-white">{cycles}</span>
-            <span className="text-xs text-slate-400">{cycles === 1 ? 'cycle' : 'cycles'} · {Math.round(minutes / 60 * 10) / 10}h focus</span>
-          </div>
-        ))}
+      <div className="w-full max-w-xs flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: 'This week', cycles: stats.weekly.cycles, minutes: stats.weekly.focusMinutes },
+            { label: 'This month', cycles: stats.monthly.cycles, minutes: stats.monthly.focusMinutes },
+          ].map(({ label, cycles, minutes }) => (
+            <div key={label} className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-1 text-left">
+              <span className="text-xs text-slate-500">{label}</span>
+              <span className="text-2xl font-bold text-white">{cycles}</span>
+              <span className="text-xs text-slate-400">{cycles === 1 ? 'cycle' : 'cycles'} · {Math.round(minutes / 60 * 10) / 10}h focus</span>
+            </div>
+          ))}
+        </div>
+        {overallAccuracyPct !== null && (
+          <button
+            onClick={() => navigate('/history')}
+            className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between text-left hover:bg-white/10 transition-colors"
+          >
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs text-slate-500">Estimation accuracy</span>
+              <span className="text-2xl font-bold text-white">{overallAccuracyPct}%</span>
+            </div>
+            <span className="text-xs text-slate-500">View history →</span>
+          </button>
+        )}
       </div>
 
       {/* Reminder widget */}

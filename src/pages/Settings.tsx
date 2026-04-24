@@ -68,7 +68,10 @@ export function Settings() {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <button onClick={() => navigate('/')} className="text-slate-400 hover:text-white text-sm transition-colors">← Back</button>
-            <button onClick={() => navigate('/about')} className="text-slate-500 hover:text-slate-300 text-sm transition-colors">About</button>
+            <div className="flex items-center gap-4">
+              <button onClick={() => navigate('/history')} className="text-slate-500 hover:text-slate-300 text-sm transition-colors">History</button>
+              <button onClick={() => navigate('/about')} className="text-slate-500 hover:text-slate-300 text-sm transition-colors">About</button>
+            </div>
           </div>
           <h1 className="text-3xl font-bold text-white">Settings</h1>
           <p className="text-slate-400 text-sm">Changes are saved automatically.</p>

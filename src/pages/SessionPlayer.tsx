@@ -274,7 +274,12 @@ export function SessionPlayer() {
   }, [audioMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    handleStart()
+    // AudioContext starts 'suspended' when autoplay is blocked by the browser.
+    // On return visits after prior audio interaction, it starts 'running'.
+    const probe = new AudioContext()
+    const allowed = probe.state === 'running'
+    probe.close()
+    if (allowed) handleStart()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleStart() {

@@ -278,7 +278,7 @@ export function SessionPlayer() {
   const { recordSession, stats } = useProgress()
   const { scheduleReminder, cancelReminder, pendingAt, notificationsSupported } = useSessionReminder()
   const { isEnabled: plannerEnabled } = usePlannerUnlock()
-  const { tasks, addTask, removeTask, resetForSession, totalEstimated, totalActual } = useTasks()
+  const { tasks, addTask, removeTask, setTag, resetForSession, totalEstimated, totalActual } = useTasks()
 
   const segments = useRef(buildSchedule(config)).current
   const { start: startBeats, stop: stopBeats, suspend: suspendBeats, resumeCtx: resumeBeats } = useBinauralBeats()
@@ -439,6 +439,7 @@ export function SessionPlayer() {
         tasks={tasks}
         onAdd={addTask}
         onRemove={removeTask}
+        onSetTag={setTag}
         onStart={handleStart}
         onSkip={handleStart}
       />

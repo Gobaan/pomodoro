@@ -11,6 +11,7 @@ type Action =
   | { type: 'SKIP_PHASE' }
   | { type: 'JUMP_TO_SEGMENT'; index: number }
   | { type: 'SEEK_IN_SEGMENT'; elapsedSeconds: number }
+  | { type: 'RESET' }
 
 function makeInitial(segments: PhaseSegment[]): PomodoroState {
   return {
@@ -84,6 +85,8 @@ function reducer(
         isComplete: false,
       }
     }
+    case 'RESET':
+      return makeInitial(segments)
     default:
       return state
   }
@@ -145,5 +148,6 @@ export function usePomodoro({ segments, onPhaseChange, onComplete }: UsePomodoro
       dispatch({ type: 'EXTEND_BREAK', extraSeconds: minutes * 60 }),
     jumpToSegment: (index: number) => dispatch({ type: 'JUMP_TO_SEGMENT', index }),
     seekInSegment: (elapsedSeconds: number) => dispatch({ type: 'SEEK_IN_SEGMENT', elapsedSeconds }),
+    reset: () => dispatch({ type: 'RESET' }),
   }
 }

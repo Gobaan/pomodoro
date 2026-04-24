@@ -46,7 +46,7 @@ const MODE_CYCLE: AudioMode[] = ['noise', 'melody', 'off']
 
 type FeedbackStatus = 'idle' | 'sending' | 'sent' | 'error'
 
-function CompletionScreen({ totalCycles, onHome }: { totalCycles: number; onHome: () => void }) {
+function CompletionScreen({ totalCycles, onRestart }: { totalCycles: number; onRestart: () => void }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [feedbackText, setFeedbackText] = useState('')
   const [feedbackEmail, setFeedbackEmail] = useState('')
@@ -80,10 +80,10 @@ function CompletionScreen({ totalCycles, onHome }: { totalCycles: number; onHome
         You completed {totalCycles} focus cycle{totalCycles !== 1 ? 's' : ''}. Great work!
       </p>
       <button
-        onClick={onHome}
+        onClick={onRestart}
         className="px-8 py-3 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors"
       >
-        Back to Home
+        Start New Session
       </button>
 
       <div className="flex items-center gap-3">
@@ -238,7 +238,7 @@ export function SessionPlayer() {
     analytics.sessionComplete({ cycles: config.totalCycles, audioMode: audioModeRef.current })
   }, [stopBeats, stopNoise, stopMelody]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { state, currentSegment, start, pause, resume, skipPhase, extendBreak, jumpToSegment, seekInSegment } =
+  const { state, currentSegment, start, pause, resume, skipPhase, extendBreak, jumpToSegment, seekInSegment, reset } =
     usePomodoro({
       segments,
       onPhaseChange: handlePhaseChange,
@@ -322,7 +322,11 @@ export function SessionPlayer() {
     return (
       <CompletionScreen
         totalCycles={config.totalCycles}
-        onHome={() => navigate('/')}
+        onRestart={() => {
+          reset()
+          setForceComplete(false)
+          handleStart()
+        }}
       />
     )
   }

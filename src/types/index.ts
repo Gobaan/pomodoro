@@ -3,7 +3,6 @@ export type PhaseType = 'warmup' | 'focus' | 'cooldown' | 'shortBreak' | 'longBr
 /** Maps a phase to one of the three local audio tracks */
 export type StageKey = 'focus' | 'cooldown' | 'break'
 
-// Legacy — kept for the YouTube MusicSetup page
 export type VideoKey = 'alpha' | 'beta' | 'theta'
 
 export interface VideoConfig {

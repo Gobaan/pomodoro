@@ -191,7 +191,7 @@ All shared types live in `src/types/index.ts`:
 
 ---
 
-### 5. Task planner — progressive disclosure [ ]
+### 5. Task planner — progressive disclosure [x]
 
 **Goal:** Introduce Pomodoro-style task planning only after the user has established a habit, so it never blocks the instant-start experience for new users.
 

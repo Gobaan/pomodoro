@@ -12,6 +12,9 @@ import { usePing, shouldPingOnPhase } from '../hooks/usePing'
 import { useProgress } from '../hooks/useProgress'
 import { useVisibilityResume } from '../hooks/useVisibilityResume'
 import { useSessionReminder } from '../hooks/useSessionReminder'
+import { usePlannerUnlock } from '../hooks/usePlannerUnlock'
+import { useTasks } from '../hooks/useTasks'
+import { TaskPlanner } from '../components/TaskPlanner'
 import type { ProgressStats } from '../hooks/useProgress'
 import { buildSchedule } from '../utils/phaseSchedule'
 import { analytics } from '../utils/analytics'
@@ -53,6 +56,7 @@ type FeedbackStatus = 'idle' | 'sending' | 'sent' | 'error'
 function CompletionScreen({
   totalCycles, stats, onRestart,
   scheduleReminder, cancelReminder, pendingAt, notificationsSupported,
+  totalEstimated, totalActual,
 }: {
   totalCycles: number
   stats: ProgressStats
@@ -61,6 +65,8 @@ function CompletionScreen({
   cancelReminder: () => void
   pendingAt: string | null
   notificationsSupported: boolean
+  totalEstimated: number
+  totalActual: number
 }) {
   const [reminderTime, setReminderTime] = useState('')
   const [reminderStatus, setReminderStatus] = useState<'idle' | 'denied'>('idle')
@@ -107,6 +113,15 @@ function CompletionScreen({
       <p className="text-slate-400">
         You completed {totalCycles} focus cycle{totalCycles !== 1 ? 's' : ''}. Great work!
       </p>
+
+      {/* Estimate accuracy */}
+      {totalEstimated > 0 && (
+        <div className="flex items-center gap-4 text-sm">
+          <span className="text-slate-500">Estimated <span className="text-white font-mono">{totalEstimated}</span> 🍅</span>
+          <span className="text-slate-600">·</span>
+          <span className="text-slate-500">Actual <span className={totalActual <= totalEstimated ? 'text-green-400' : 'text-amber-400'} >{totalActual}</span> 🍅</span>
+        </div>
+      )}
 
       {/* Progress stats */}
       <div className="w-full max-w-xs grid grid-cols-2 gap-3">
@@ -262,6 +277,8 @@ export function SessionPlayer() {
   const config: SessionConfig = loadConfig()
   const { recordSession, stats } = useProgress()
   const { scheduleReminder, cancelReminder, pendingAt, notificationsSupported } = useSessionReminder()
+  const { isEnabled: plannerEnabled } = usePlannerUnlock()
+  const { tasks, addTask, removeTask, resetForSession, totalEstimated, totalActual } = useTasks()
 
   const segments = useRef(buildSchedule(config)).current
   const { start: startBeats, stop: stopBeats, suspend: suspendBeats, resumeCtx: resumeBeats } = useBinauralBeats()
@@ -355,6 +372,8 @@ export function SessionPlayer() {
   }, [audioMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    // Planner enabled — skip auto-start so user can plan first.
+    if (plannerEnabled) return
     const autostart = new URLSearchParams(window.location.search).get('autostart') === '1'
     // AudioContext starts 'suspended' when autoplay is blocked by the browser.
     // On return visits after prior audio interaction, it starts 'running'.
@@ -367,6 +386,7 @@ export function SessionPlayer() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleStart() {
+    resetForSession()
     start()
     startBeats(segments[0].phase)
     startAmbient(segments[0].phase)
@@ -413,6 +433,18 @@ export function SessionPlayer() {
     .filter(s => s.phase === 'cooldown')
     .length
 
+  if (plannerEnabled && !state.isRunning && !state.isPaused) {
+    return (
+      <TaskPlanner
+        tasks={tasks}
+        onAdd={addTask}
+        onRemove={removeTask}
+        onStart={handleStart}
+        onSkip={handleStart}
+      />
+    )
+  }
+
   if (state.isComplete || forceComplete) {
     return (
       <CompletionScreen
@@ -422,6 +454,8 @@ export function SessionPlayer() {
         cancelReminder={cancelReminder}
         pendingAt={pendingAt}
         notificationsSupported={notificationsSupported}
+        totalEstimated={totalEstimated}
+        totalActual={totalActual}
         onRestart={() => {
           reset()
           setForceComplete(false)

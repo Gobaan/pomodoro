@@ -14,8 +14,10 @@ import { useVisibilityResume } from '../hooks/useVisibilityResume'
 import { useSessionReminder } from '../hooks/useSessionReminder'
 import { usePlannerUnlock } from '../hooks/usePlannerUnlock'
 import { useTasks } from '../hooks/useTasks'
+import { useTaskHistory } from '../hooks/useTaskHistory'
 import { TaskPlanner } from '../components/TaskPlanner'
 import type { ProgressStats } from '../hooks/useProgress'
+import type { Task } from '../hooks/useTasks'
 import { buildSchedule } from '../utils/phaseSchedule'
 import { analytics } from '../utils/analytics'
 import type { SessionConfig, PhaseSegment, PhaseType } from '../types'
@@ -56,7 +58,7 @@ type FeedbackStatus = 'idle' | 'sending' | 'sent' | 'error'
 function CompletionScreen({
   totalCycles, stats, onRestart,
   scheduleReminder, cancelReminder, pendingAt, notificationsSupported,
-  totalEstimated, totalActual,
+  tasks, onSetActual, onSaveTasks,
 }: {
   totalCycles: number
   stats: ProgressStats
@@ -65,11 +67,18 @@ function CompletionScreen({
   cancelReminder: () => void
   pendingAt: string | null
   notificationsSupported: boolean
-  totalEstimated: number
-  totalActual: number
+  tasks: Task[]
+  onSetActual: (id: string, actual: number) => void
+  onSaveTasks: () => void
 }) {
+  const [tasksSaved, setTasksSaved] = useState(false)
   const [reminderTime, setReminderTime] = useState('')
   const [reminderStatus, setReminderStatus] = useState<'idle' | 'denied'>('idle')
+
+  function handleSaveTasks() {
+    onSaveTasks()
+    setTasksSaved(true)
+  }
 
   async function handleSchedule() {
     if (!reminderTime) return
@@ -114,12 +123,38 @@ function CompletionScreen({
         You completed {totalCycles} focus cycle{totalCycles !== 1 ? 's' : ''}. Great work!
       </p>
 
-      {/* Estimate accuracy */}
-      {totalEstimated > 0 && (
-        <div className="flex items-center gap-4 text-sm">
-          <span className="text-slate-500">Estimated <span className="text-white font-mono">{totalEstimated}</span> 🍅</span>
-          <span className="text-slate-600">·</span>
-          <span className="text-slate-500">Actual <span className={totalActual <= totalEstimated ? 'text-green-400' : 'text-amber-400'} >{totalActual}</span> 🍅</span>
+      {/* Per-task actuals */}
+      {tasks.length > 0 && (
+        <div className="w-full max-w-xs flex flex-col gap-2 text-left">
+          <p className="text-xs text-slate-500 px-1">How many 🍅 did each task actually take?</p>
+          {tasks.map(task => (
+            <div key={task.id} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+              <span className="px-1.5 py-0.5 rounded-full bg-violet-900/50 border border-violet-700/40 text-violet-300 text-xs font-mono shrink-0">
+                {task.tag}
+              </span>
+              <span className="flex-1 text-sm text-white truncate">{task.name}</span>
+              <span className="text-xs text-slate-600 font-mono shrink-0">{task.estimatedPomodoros}est</span>
+              {tasksSaved ? (
+                <span className="text-xs font-mono text-slate-400 shrink-0">{task.actualPomodoros} actual</span>
+              ) : (
+                <div className="flex items-center gap-1 shrink-0">
+                  <button onClick={() => onSetActual(task.id, task.actualPomodoros - 1)} className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs flex items-center justify-center transition-colors">−</button>
+                  <span className="w-5 text-center text-sm font-mono text-white">{task.actualPomodoros}</span>
+                  <button onClick={() => onSetActual(task.id, task.actualPomodoros + 1)} className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs flex items-center justify-center transition-colors">+</button>
+                </div>
+              )}
+            </div>
+          ))}
+          {tasksSaved ? (
+            <p className="text-xs text-green-400 text-center pt-1">Saved to history ✓</p>
+          ) : (
+            <button
+              onClick={handleSaveTasks}
+              className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-sm transition-colors"
+            >
+              Save to history
+            </button>
+          )}
         </div>
       )}
 
@@ -278,7 +313,8 @@ export function SessionPlayer() {
   const { recordSession, stats } = useProgress()
   const { scheduleReminder, cancelReminder, pendingAt, notificationsSupported } = useSessionReminder()
   const { isEnabled: plannerEnabled } = usePlannerUnlock()
-  const { tasks, addTask, removeTask, setTag, resetForSession, totalEstimated, totalActual } = useTasks()
+  const { tasks, addTask, removeTask, setTag, setActual, resetForSession } = useTasks()
+  const { recordTasks } = useTaskHistory()
 
   const segments = useRef(buildSchedule(config)).current
   const { start: startBeats, stop: stopBeats, suspend: suspendBeats, resumeCtx: resumeBeats } = useBinauralBeats()
@@ -455,8 +491,9 @@ export function SessionPlayer() {
         cancelReminder={cancelReminder}
         pendingAt={pendingAt}
         notificationsSupported={notificationsSupported}
-        totalEstimated={totalEstimated}
-        totalActual={totalActual}
+        tasks={tasks}
+        onSetActual={setActual}
+        onSaveTasks={() => recordTasks(tasks)}
         onRestart={() => {
           reset()
           setForceComplete(false)

@@ -273,6 +273,10 @@ export function SessionPlayer() {
     if (audioMode === 'melody') startMelody(phase)
   }, [audioMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    handleStart()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   function handleStart() {
     start()
     startBeats(segments[0].phase)

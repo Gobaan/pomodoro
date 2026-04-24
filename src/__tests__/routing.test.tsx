@@ -11,6 +11,9 @@ vi.mock('../pages/Settings', () => ({
 vi.mock('../pages/About', () => ({
   About: () => <div data-testid="about">About</div>,
 }))
+vi.mock('../pages/History', () => ({
+  History: () => <div data-testid="history">History</div>,
+}))
 vi.mock('../pages/AudioTest', () => ({
   AudioTest: () => <div data-testid="audio-test">AudioTest</div>,
 }))
@@ -46,6 +49,12 @@ describe('App routing with basename /flowbeats', () => {
     window.history.pushState({}, '', '/flowbeats/about')
     render(<App />)
     expect(screen.getByTestId('about')).toBeInTheDocument()
+  })
+
+  it('renders History at /flowbeats/history', () => {
+    window.history.pushState({}, '', '/flowbeats/history')
+    render(<App />)
+    expect(screen.getByTestId('history')).toBeInTheDocument()
   })
 
   it('redirects unknown paths within /flowbeats to SessionPlayer', () => {

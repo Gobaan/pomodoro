@@ -19,6 +19,9 @@ A web app that guides Pomodoro work sessions using binaural beats audio. The use
 npm run dev      # start dev server at http://localhost:5173
 npm run build    # production build to dist/
 npm run preview  # preview production build
+npm test         # run test suite
+npm run deploy   # upload dist/ to gobaan.com (requires pre-built dist)
+npm run ship     # build + test + deploy in one step
 ```
 
 ## Deployment

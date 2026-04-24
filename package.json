@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "scp -r dist/* lordofall@gobaan.com:~/flowbeats-deploy/ && ssh lordofall@gobaan.com \"sudo cp -r ~/flowbeats-deploy/* /var/www/html/flowbeats/ && sudo chown -R www-data:www-data /var/www/html/flowbeats/ && rm -rf ~/flowbeats-deploy\"",
+    "ship": "npm run build && npm test && npm run deploy"
   },
   "dependencies": {
     "@types/youtube": "^0.1.2",

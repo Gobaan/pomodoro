@@ -87,17 +87,12 @@ describe('useTasks', () => {
     expect(result.current.tasks).toHaveLength(0)
   })
 
-  it('resetForSession zeroes actuals and done without removing tasks', () => {
+  it('resetForSession clears all tasks for a fresh session', () => {
     const { result } = renderHook(() => useTasks())
-    act(() => result.current.addTask('Task', 3))
-    const id = result.current.tasks[0].id
-    act(() => { result.current.setActual(id, 4); result.current.toggleDone(id) })
-    expect(result.current.tasks[0].actualPomodoros).toBe(4)
-    expect(result.current.tasks[0].done).toBe(true)
+    act(() => result.current.addTask('Task A', 3))
+    act(() => result.current.addTask('Task B', 1))
     act(() => result.current.resetForSession())
-    expect(result.current.tasks).toHaveLength(1)
-    expect(result.current.tasks[0].actualPomodoros).toBe(0)
-    expect(result.current.tasks[0].done).toBe(false)
+    expect(result.current.tasks).toHaveLength(0)
   })
 
   it('totalEstimated and totalActual sum correctly', () => {

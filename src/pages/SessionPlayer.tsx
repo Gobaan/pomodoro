@@ -58,7 +58,7 @@ type FeedbackStatus = 'idle' | 'sending' | 'sent' | 'error'
 function CompletionScreen({
   totalCycles, stats, onRestart,
   scheduleReminder, cancelReminder, pendingAt, notificationsSupported,
-  tasks, onSetActual, onSaveTasks,
+  tasks, onSetActual, onSaveTasks, plannerEnabled,
 }: {
   totalCycles: number
   stats: ProgressStats
@@ -70,6 +70,7 @@ function CompletionScreen({
   tasks: Task[]
   onSetActual: (id: string, actual: number) => void
   onSaveTasks: () => void
+  plannerEnabled: boolean
 }) {
   const navigate = useNavigate()
   const { getTagSummaries } = useTaskHistory()
@@ -132,7 +133,7 @@ function CompletionScreen({
       </p>
 
       {/* Per-task actuals */}
-      {tasks.length > 0 && (
+      {plannerEnabled && tasks.length > 0 && (
         <div className="w-full max-w-xs flex flex-col gap-2 text-left">
           <p className="text-xs text-slate-500 px-1">How many 🍅 did each task actually take?</p>
           {tasks.map(task => (
@@ -142,15 +143,11 @@ function CompletionScreen({
               </span>
               <span className="flex-1 text-sm text-white truncate">{task.name}</span>
               <span className="text-xs text-slate-600 font-mono shrink-0">{task.estimatedPomodoros}est</span>
-              {tasksSaved ? (
-                <span className="text-xs font-mono text-slate-400 shrink-0">{task.actualPomodoros} actual</span>
-              ) : (
-                <div className="flex items-center gap-1 shrink-0">
-                  <button onClick={() => onSetActual(task.id, task.actualPomodoros - 1)} className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs flex items-center justify-center transition-colors">−</button>
-                  <span className="w-5 text-center text-sm font-mono text-white">{task.actualPomodoros}</span>
-                  <button onClick={() => onSetActual(task.id, task.actualPomodoros + 1)} className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs flex items-center justify-center transition-colors">+</button>
-                </div>
-              )}
+              <div className="flex items-center gap-1 shrink-0">
+                <button onClick={() => onSetActual(task.id, task.actualPomodoros - 1)} className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs flex items-center justify-center transition-colors">−</button>
+                <span className="w-5 text-center text-sm font-mono text-white">{task.actualPomodoros}</span>
+                <button onClick={() => onSetActual(task.id, task.actualPomodoros + 1)} className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs flex items-center justify-center transition-colors">+</button>
+              </div>
             </div>
           ))}
           {tasksSaved ? (
@@ -516,6 +513,7 @@ export function SessionPlayer() {
         tasks={tasks}
         onSetActual={setActual}
         onSaveTasks={() => recordTasks(tasks)}
+        plannerEnabled={plannerEnabled}
         onRestart={() => {
           reset()
           setForceComplete(false)

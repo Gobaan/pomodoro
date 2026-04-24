@@ -74,9 +74,8 @@ export function useTasks() {
     update([])
   }, [update])
 
-  // Reset actuals and done state for a new session while keeping the task list
   const resetForSession = useCallback(() => {
-    update(prev => prev.map(t => ({ ...t, actualPomodoros: 0, done: false })))
+    update([])
   }, [update])
 
   const totalEstimated = tasks.reduce((sum, t) => sum + t.estimatedPomodoros, 0)

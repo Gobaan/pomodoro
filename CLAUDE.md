@@ -229,7 +229,7 @@ Never gate the core timer behind any of these. Each feature is layered on top of
 
 ---
 
-## Audio Resilience — Test Cases [ ]
+## Audio Resilience — Test Cases [x]
 
 Browser focus/blur events can suspend or kill HTML5 Audio playback. These cases must have test coverage.
 

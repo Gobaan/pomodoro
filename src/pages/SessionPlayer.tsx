@@ -10,6 +10,7 @@ import { useNoise } from '../hooks/useNoise'
 import { useMelody } from '../hooks/useMelody'
 import { usePing, shouldPingOnPhase } from '../hooks/usePing'
 import { useProgress } from '../hooks/useProgress'
+import { useVisibilityResume } from '../hooks/useVisibilityResume'
 import type { ProgressStats } from '../hooks/useProgress'
 import { buildSchedule } from '../utils/phaseSchedule'
 import { analytics } from '../utils/analytics'
@@ -273,6 +274,7 @@ export function SessionPlayer() {
     }
   }, [state.isPaused, suspendBeats, suspendNoise, suspendMelody])
 
+
   // Kill all audio on unmount
   useEffect(() => {
     return () => {
@@ -332,6 +334,15 @@ export function SessionPlayer() {
   const [forceComplete, setForceComplete] = useState(false)
   const forceCompleteRef = useRef(false)
   forceCompleteRef.current = forceComplete
+
+  useVisibilityResume(
+    useCallback(() => {
+      resumeBeats()
+      if (audioModeRef.current === 'noise')  resumeNoise()
+      if (audioModeRef.current === 'melody') resumeMelody()
+    }, [resumeBeats, resumeNoise, resumeMelody]),
+    state.isRunning && !state.isPaused && !forceCompleteRef.current,
+  )
 
   const isBreak = currentSegment?.phase === 'shortBreak' || currentSegment?.phase === 'longBreak'
   const cycleIndex = currentSegment?.cycleIndex ?? 0

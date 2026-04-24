@@ -9,7 +9,7 @@
     "test": "vitest run",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy": "scp -r dist/* lordofall@gobaan.com:~/flowbeats-deploy/ && ssh lordofall@gobaan.com \"sudo cp -r ~/flowbeats-deploy/* /var/www/html/flowbeats/ && sudo chown -R www-data:www-data /var/www/html/flowbeats/ && rm -rf ~/flowbeats-deploy\"",
+    "deploy": "scp -r dist/* lordofall@gobaan.com:~/flowbeats-deploy/ && ssh lordofall@gobaan.com \"sudo cp -r ~/flowbeats-deploy/* /var/www/html/flowbeats/ && sudo chown -R www-data:www-data /var/www/html/flowbeats/ && rm -rf ~/flowbeats-deploy\" > deploy.log 2>&1 || (cat deploy.log && exit 1)",
     "ship": "npm run build && npm test && npm run deploy"
   },
   "dependencies": {

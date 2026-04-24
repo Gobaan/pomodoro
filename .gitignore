@@ -21,6 +21,9 @@ server/.env
 # Local-only deployment notes (contains credentials)
 DEPLOY.local.md
 
+# Deploy log (only populated on failure)
+deploy.log
+
 # Claude Code
 .claude/
 

@@ -18,6 +18,9 @@ public/audio/
 # Server environment
 server/.env
 
+# Local-only deployment notes (contains credentials)
+DEPLOY.local.md
+
 # Claude Code
 .claude/
 

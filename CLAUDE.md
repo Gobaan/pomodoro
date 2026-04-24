@@ -21,6 +21,12 @@ npm run build    # production build to dist/
 npm run preview  # preview production build
 ```
 
+## Deployment
+
+Deployment credentials and exact steps live in **`DEPLOY.local.md`** (gitignored — never committed).  
+Before deploying or helping with server-side work, read that file first.  
+If it is missing, ask the user for the server host, user, and path before proceeding.
+
 ## Architecture
 
 ### Pages (src/pages/)

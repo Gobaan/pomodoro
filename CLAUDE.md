@@ -110,7 +110,7 @@ All shared types live in `src/types/index.ts`:
 
 ## Planned Changes
 
-### 1. Remove mid-session pings [ ]
+### 1. Remove mid-session pings [x]
 
 **Goal:** Only ping at break transitions; silence the ping at warmup→focus and focus→cooldown boundaries.
 
@@ -119,7 +119,7 @@ All shared types live in `src/types/index.ts`:
 
 ---
 
-### 2. Restructure navigation — session-first flow [ ]
+### 2. Restructure navigation — session-first flow [x]
 
 **Goal:** App opens directly to the session player. Setup lives in Settings; the old Welcome screen becomes About.
 

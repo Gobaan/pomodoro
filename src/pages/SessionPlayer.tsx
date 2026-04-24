@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Timer } from '../components/Timer'
 import { PhaseIndicator } from '../components/PhaseIndicator'
 import { Controls } from '../components/Controls'
@@ -166,13 +166,25 @@ function CompletionScreen({ totalCycles, onHome }: { totalCycles: number; onHome
   )
 }
 
+// ─── Config loading ───────────────────────────────────────────────────────────
+
+const SESSION_CONFIG_KEY = 'pmg_session_config'
+
+function loadConfig(): SessionConfig {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SESSION_CONFIG_KEY) ?? 'null')
+    return saved ? { ...DEFAULT_SESSION_CONFIG, ...saved } : DEFAULT_SESSION_CONFIG
+  } catch {
+    return DEFAULT_SESSION_CONFIG
+  }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function SessionPlayer() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const config: SessionConfig =
-    (location.state as { config?: SessionConfig } | null)?.config ?? DEFAULT_SESSION_CONFIG
+  const isFirstVisit = localStorage.getItem(SESSION_CONFIG_KEY) === null
+  const config: SessionConfig = loadConfig()
 
   const segments = useRef(buildSchedule(config)).current
   const { start: startBeats, stop: stopBeats, suspend: suspendBeats, resumeCtx: resumeBeats } = useBinauralBeats()
@@ -306,10 +318,45 @@ export function SessionPlayer() {
     )
   }
 
+  if (isFirstVisit) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center gap-6">
+        <div className="text-5xl">🎧</div>
+        <h1 className="text-3xl font-bold text-white">Welcome to FlowBeats</h1>
+        <p className="text-slate-400 max-w-sm">Set up your session timing before your first session.</p>
+        <button
+          onClick={() => navigate('/settings')}
+          className="px-8 py-3 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors"
+        >
+          Go to Settings →
+        </button>
+        <button onClick={() => navigate('/about')} className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
+          Learn more about FlowBeats
+        </button>
+      </div>
+    )
+  }
+
   const modeLabel = isBreak ? BREAK_MODE_LABELS[audioMode] : MODE_LABELS[audioMode]
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 gap-10">
+
+      {/* Nav icons */}
+      <div className="fixed top-4 right-4 flex items-center gap-2">
+        <button
+          onClick={() => navigate('/about')}
+          title="About"
+          className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white text-sm flex items-center justify-center transition-colors"
+        >i</button>
+        <button
+          onClick={() => navigate('/settings')}
+          title="Settings"
+          className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors"
+        >
+          <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" /></svg>
+        </button>
+      </div>
 
       {/* Headphones reminder — shown only before session starts */}
       {!state.isRunning && !state.isPaused && (
@@ -417,7 +464,7 @@ export function SessionPlayer() {
             })
             stopBeats()
             stopAmbient()
-            navigate('/config')
+            navigate('/settings')
           }
         }}
         className="text-sm text-slate-600 hover:text-slate-400 transition-colors"

@@ -158,7 +158,7 @@ All shared types live in `src/types/index.ts`:
 
 ---
 
-### 4. Session-complete reward screen + progress tracking [ ]
+### 4. Session-complete reward screen + progress tracking [x]
 
 **Goal:** Celebrate completing all pomodoros and show weekly/monthly stats.
 

@@ -9,6 +9,8 @@ import { useBinauralBeats } from '../hooks/useBinauralBeats'
 import { useNoise } from '../hooks/useNoise'
 import { useMelody } from '../hooks/useMelody'
 import { usePing, shouldPingOnPhase } from '../hooks/usePing'
+import { useProgress } from '../hooks/useProgress'
+import type { ProgressStats } from '../hooks/useProgress'
 import { buildSchedule } from '../utils/phaseSchedule'
 import { analytics } from '../utils/analytics'
 import type { SessionConfig, PhaseSegment, PhaseType } from '../types'
@@ -46,7 +48,7 @@ const MODE_CYCLE: AudioMode[] = ['noise', 'melody', 'off']
 
 type FeedbackStatus = 'idle' | 'sending' | 'sent' | 'error'
 
-function CompletionScreen({ totalCycles, onRestart }: { totalCycles: number; onRestart: () => void }) {
+function CompletionScreen({ totalCycles, stats, onRestart }: { totalCycles: number; stats: ProgressStats; onRestart: () => void }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [feedbackText, setFeedbackText] = useState('')
   const [feedbackEmail, setFeedbackEmail] = useState('')
@@ -79,6 +81,21 @@ function CompletionScreen({ totalCycles, onRestart }: { totalCycles: number; onR
       <p className="text-slate-400">
         You completed {totalCycles} focus cycle{totalCycles !== 1 ? 's' : ''}. Great work!
       </p>
+
+      {/* Progress stats */}
+      <div className="w-full max-w-xs grid grid-cols-2 gap-3">
+        {[
+          { label: 'This week', cycles: stats.weekly.cycles, minutes: stats.weekly.focusMinutes },
+          { label: 'This month', cycles: stats.monthly.cycles, minutes: stats.monthly.focusMinutes },
+        ].map(({ label, cycles, minutes }) => (
+          <div key={label} className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-1 text-left">
+            <span className="text-xs text-slate-500">{label}</span>
+            <span className="text-2xl font-bold text-white">{cycles}</span>
+            <span className="text-xs text-slate-400">{cycles === 1 ? 'cycle' : 'cycles'} · {Math.round(minutes / 60 * 10) / 10}h focus</span>
+          </div>
+        ))}
+      </div>
+
       <button
         onClick={onRestart}
         className="px-8 py-3 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors"
@@ -184,6 +201,7 @@ function loadConfig(): SessionConfig {
 export function SessionPlayer() {
   const navigate = useNavigate()
   const config: SessionConfig = loadConfig()
+  const { recordSession, getStats } = useProgress()
 
   const segments = useRef(buildSchedule(config)).current
   const { start: startBeats, stop: stopBeats, suspend: suspendBeats, resumeCtx: resumeBeats } = useBinauralBeats()
@@ -237,6 +255,7 @@ export function SessionPlayer() {
     stopBeats()
     stopAmbient()
     analytics.sessionComplete({ cycles: config.totalCycles, audioMode: audioModeRef.current })
+    recordSession(config.totalCycles, config.totalCycles * config.workMinutes)
   }, [stopBeats, stopNoise, stopMelody]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { state, currentSegment, start, pause, resume, skipPhase, extendBreak, jumpToSegment, seekInSegment, reset } =
@@ -325,6 +344,7 @@ export function SessionPlayer() {
     return (
       <CompletionScreen
         totalCycles={completedCycles}
+        stats={getStats()}
         onRestart={() => {
           reset()
           setForceComplete(false)
@@ -462,6 +482,7 @@ export function SessionPlayer() {
             pause()
             stopBeats()
             stopAmbient()
+            if (completedCycles > 0) recordSession(completedCycles, completedCycles * config.workMinutes)
             setForceComplete(true)
           }
         }}

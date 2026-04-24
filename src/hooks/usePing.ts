@@ -1,4 +1,10 @@
 import { useCallback } from 'react'
+import type { PhaseType } from '../types'
+
+/** Ping only on break entries — warmup/focus/cooldown transitions are silent. */
+export function shouldPingOnPhase(phase: PhaseType): boolean {
+  return phase === 'shortBreak' || phase === 'longBreak'
+}
 
 /**
  * Returns a `ping()` function that plays a 3-tone bell using the Web Audio API.

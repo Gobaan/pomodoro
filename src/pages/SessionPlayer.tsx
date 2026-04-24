@@ -8,7 +8,7 @@ import { usePomodoro } from '../hooks/usePomodoro'
 import { useBinauralBeats } from '../hooks/useBinauralBeats'
 import { useNoise } from '../hooks/useNoise'
 import { useMelody } from '../hooks/useMelody'
-import { usePing } from '../hooks/usePing'
+import { usePing, shouldPingOnPhase } from '../hooks/usePing'
 import { buildSchedule } from '../utils/phaseSchedule'
 import { analytics } from '../utils/analytics'
 import type { SessionConfig, PhaseSegment, PhaseType } from '../types'
@@ -213,7 +213,7 @@ export function SessionPlayer() {
       // prev === null is the initial mount call before the session starts.
       // Audio for the first phase is started explicitly in handleStart.
       if (prev === null) return
-      ping()
+      if (shouldPingOnPhase(segment.phase)) ping()
       startBeats(segment.phase)
       startAmbient(segment.phase)
     },

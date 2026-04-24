@@ -140,7 +140,7 @@ All shared types live in `src/types/index.ts`:
 
 ---
 
-### 3. Notification system — schedule a session reminder [ ]
+### 3. Notification system — schedule a session reminder [x]
 
 **Goal:** After a session completes, offer users the ability to schedule a browser notification for a future time; clicking that notification deep-links to launch a new session immediately.
 

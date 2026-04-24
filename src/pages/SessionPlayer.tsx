@@ -11,6 +11,7 @@ import { useMelody } from '../hooks/useMelody'
 import { usePing, shouldPingOnPhase } from '../hooks/usePing'
 import { useProgress } from '../hooks/useProgress'
 import { useVisibilityResume } from '../hooks/useVisibilityResume'
+import { useSessionReminder } from '../hooks/useSessionReminder'
 import type { ProgressStats } from '../hooks/useProgress'
 import { buildSchedule } from '../utils/phaseSchedule'
 import { analytics } from '../utils/analytics'
@@ -49,7 +50,31 @@ const MODE_CYCLE: AudioMode[] = ['noise', 'melody', 'off']
 
 type FeedbackStatus = 'idle' | 'sending' | 'sent' | 'error'
 
-function CompletionScreen({ totalCycles, stats, onRestart }: { totalCycles: number; stats: ProgressStats; onRestart: () => void }) {
+function CompletionScreen({
+  totalCycles, stats, onRestart,
+  scheduleReminder, cancelReminder, pendingAt, notificationsSupported,
+}: {
+  totalCycles: number
+  stats: ProgressStats
+  onRestart: () => void
+  scheduleReminder: (iso: string) => Promise<'scheduled' | 'denied' | 'unsupported'>
+  cancelReminder: () => void
+  pendingAt: string | null
+  notificationsSupported: boolean
+}) {
+  const [reminderTime, setReminderTime] = useState('')
+  const [reminderStatus, setReminderStatus] = useState<'idle' | 'denied'>('idle')
+
+  async function handleSchedule() {
+    if (!reminderTime) return
+    const [h, m] = reminderTime.split(':').map(Number)
+    const d = new Date()
+    d.setHours(h, m, 0, 0)
+    if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1) // wrap to tomorrow
+    const result = await scheduleReminder(d.toISOString())
+    if (result === 'denied') setReminderStatus('denied')
+  }
+
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [feedbackText, setFeedbackText] = useState('')
   const [feedbackEmail, setFeedbackEmail] = useState('')
@@ -96,6 +121,39 @@ function CompletionScreen({ totalCycles, stats, onRestart }: { totalCycles: numb
           </div>
         ))}
       </div>
+
+      {/* Reminder widget */}
+      {notificationsSupported && (
+        <div className="w-full max-w-xs flex flex-col gap-2">
+          {pendingAt ? (
+            <div className="flex items-center justify-between bg-violet-900/30 border border-violet-700/40 rounded-xl px-4 py-3">
+              <span className="text-sm text-violet-300">
+                Reminder set for {new Date(pendingAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <button onClick={cancelReminder} className="text-xs text-slate-400 hover:text-white transition-colors">Cancel</button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <input
+                type="time"
+                value={reminderTime}
+                onChange={e => { setReminderTime(e.target.value); setReminderStatus('idle') }}
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500"
+              />
+              <button
+                onClick={handleSchedule}
+                disabled={!reminderTime}
+                className="px-4 py-2 rounded-xl bg-violet-700/60 hover:bg-violet-600/70 disabled:opacity-40 text-white text-sm font-medium transition-colors"
+              >
+                Remind me
+              </button>
+            </div>
+          )}
+          {reminderStatus === 'denied' && (
+            <p className="text-xs text-amber-400 text-center">Notification permission denied — enable it in browser settings.</p>
+          )}
+        </div>
+      )}
 
       <button
         onClick={onRestart}
@@ -203,6 +261,7 @@ export function SessionPlayer() {
   const navigate = useNavigate()
   const config: SessionConfig = loadConfig()
   const { recordSession, getStats } = useProgress()
+  const { scheduleReminder, cancelReminder, pendingAt, notificationsSupported } = useSessionReminder()
 
   const segments = useRef(buildSchedule(config)).current
   const { start: startBeats, stop: stopBeats, suspend: suspendBeats, resumeCtx: resumeBeats } = useBinauralBeats()
@@ -296,10 +355,13 @@ export function SessionPlayer() {
   }, [audioMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    const autostart = new URLSearchParams(window.location.search).get('autostart') === '1'
     // AudioContext starts 'suspended' when autoplay is blocked by the browser.
     // On return visits after prior audio interaction, it starts 'running'.
+    // Notification deep-links pass ?autostart=1 — treat as allowed since the
+    // tab was opened by user interaction (clicking the notification).
     const probe = new AudioContext()
-    const allowed = probe.state === 'running'
+    const allowed = autostart || probe.state === 'running'
     probe.close()
     if (allowed) handleStart()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -356,6 +418,10 @@ export function SessionPlayer() {
       <CompletionScreen
         totalCycles={completedCycles}
         stats={getStats()}
+        scheduleReminder={scheduleReminder}
+        cancelReminder={cancelReminder}
+        pendingAt={pendingAt}
+        notificationsSupported={notificationsSupported}
         onRestart={() => {
           reset()
           setForceComplete(false)

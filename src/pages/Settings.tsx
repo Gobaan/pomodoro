@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { SessionConfig } from '../types'
 import { DEFAULT_SESSION_CONFIG } from '../types'
+import { usePlannerUnlock } from '../hooks/usePlannerUnlock'
 
 const STORAGE_KEY = 'pmg_session_config'
 
@@ -48,6 +49,7 @@ function NumField({ label, sublabel, value, min, max, onChange }: NumFieldProps)
 export function Settings() {
   const navigate = useNavigate()
   const [config, setConfig] = useState<SessionConfig>(loadConfig)
+  const { isEnabled: plannerEnabled, autoUnlocked, hasManualOverride, setEnabled: setPlannerEnabled } = usePlannerUnlock()
 
   function update<K extends keyof SessionConfig>(key: K, val: SessionConfig[K]) {
     setConfig(prev => {
@@ -92,6 +94,34 @@ export function Settings() {
         <div className="bg-white/5 rounded-xl p-5 border border-white/10 flex flex-col">
           <h2 className="text-base font-semibold text-white mb-1">Session Length</h2>
           <NumField label="Total focus cycles" value={config.totalCycles} min={1} max={12} onChange={v => update('totalCycles', v)} />
+        </div>
+
+        <div className="bg-white/5 rounded-xl p-5 border border-white/10 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-white">Task Planner</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {autoUnlocked
+                  ? 'Plan tasks before each session and track estimates.'
+                  : 'Unlocks automatically after 7 days of sessions.'}
+              </p>
+            </div>
+            <button
+              onClick={() => setPlannerEnabled(!plannerEnabled)}
+              className={`relative w-11 h-6 rounded-full transition-colors ${
+                plannerEnabled ? 'bg-violet-600' : 'bg-white/10'
+              }`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                plannerEnabled ? 'translate-x-5' : 'translate-x-0'
+              }`} />
+            </button>
+          </div>
+          {!autoUnlocked && !hasManualOverride && (
+            <p className="text-xs text-slate-600">
+              Complete sessions on 7 different days to unlock automatically, or toggle above to enable now.
+            </p>
+          )}
         </div>
 
         <button

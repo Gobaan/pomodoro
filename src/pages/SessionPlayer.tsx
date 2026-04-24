@@ -260,7 +260,7 @@ function loadConfig(): SessionConfig {
 export function SessionPlayer() {
   const navigate = useNavigate()
   const config: SessionConfig = loadConfig()
-  const { recordSession, getStats } = useProgress()
+  const { recordSession, stats } = useProgress()
   const { scheduleReminder, cancelReminder, pendingAt, notificationsSupported } = useSessionReminder()
 
   const segments = useRef(buildSchedule(config)).current
@@ -417,7 +417,7 @@ export function SessionPlayer() {
     return (
       <CompletionScreen
         totalCycles={completedCycles}
-        stats={getStats()}
+        stats={stats}
         scheduleReminder={scheduleReminder}
         cancelReminder={cancelReminder}
         pendingAt={pendingAt}

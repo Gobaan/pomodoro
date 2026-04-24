@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 export interface CompletedSession {
   date: string // ISO timestamp
@@ -55,15 +55,17 @@ export function computeStats(sessions: CompletedSession[]): ProgressStats {
 }
 
 export function useProgress() {
+  const [sessions, setSessions] = useState<CompletedSession[]>(loadSessions)
+
   const recordSession = useCallback((cycles: number, focusMinutes: number) => {
-    const sessions = loadSessions()
-    sessions.push({ date: new Date().toISOString(), cycles, focusMinutes })
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions))
+    setSessions(prev => {
+      const next = [...prev, { date: new Date().toISOString(), cycles, focusMinutes }]
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      return next
+    })
   }, [])
 
-  const getStats = useCallback((): ProgressStats => {
-    return computeStats(loadSessions())
-  }, [])
+  const stats = useMemo(() => computeStats(sessions), [sessions])
 
-  return { recordSession, getStats }
+  return { recordSession, stats }
 }

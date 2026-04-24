@@ -183,7 +183,6 @@ function loadConfig(): SessionConfig {
 
 export function SessionPlayer() {
   const navigate = useNavigate()
-  const isFirstVisit = localStorage.getItem(SESSION_CONFIG_KEY) === null
   const config: SessionConfig = loadConfig()
 
   const segments = useRef(buildSchedule(config)).current
@@ -315,25 +314,6 @@ export function SessionPlayer() {
         totalCycles={config.totalCycles}
         onHome={() => navigate('/')}
       />
-    )
-  }
-
-  if (isFirstVisit) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center gap-6">
-        <div className="text-5xl">🎧</div>
-        <h1 className="text-3xl font-bold text-white">Welcome to FlowBeats</h1>
-        <p className="text-slate-400 max-w-sm">Set up your session timing before your first session.</p>
-        <button
-          onClick={() => navigate('/settings')}
-          className="px-8 py-3 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-semibold transition-colors"
-        >
-          Go to Settings →
-        </button>
-        <button onClick={() => navigate('/about')} className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
-          Learn more about FlowBeats
-        </button>
-      </div>
     )
   }
 

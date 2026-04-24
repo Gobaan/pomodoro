@@ -304,6 +304,7 @@ export function SessionPlayer() {
   }
 
   const [debugOpen, setDebugOpen] = useState(false)
+  const [forceComplete, setForceComplete] = useState(false)
 
   const isBreak = currentSegment?.phase === 'shortBreak' || currentSegment?.phase === 'longBreak'
   const cycleIndex = currentSegment?.cycleIndex ?? 0
@@ -312,7 +313,7 @@ export function SessionPlayer() {
     .filter(s => s.phase === 'cooldown')
     .length
 
-  if (state.isComplete) {
+  if (state.isComplete || forceComplete) {
     return (
       <CompletionScreen
         totalCycles={config.totalCycles}
@@ -440,7 +441,7 @@ export function SessionPlayer() {
       {/* Back link */}
       <button
         onClick={() => {
-          if (confirm('End session and go back?')) {
+          if (confirm('End session early?')) {
             analytics.sessionAbandon({
               segmentsComplete: state.segmentIndex,
               segmentsTotal:    segments.length,
@@ -448,7 +449,7 @@ export function SessionPlayer() {
             })
             stopBeats()
             stopAmbient()
-            navigate('/settings')
+            setForceComplete(true)
           }
         }}
         className="text-sm text-slate-600 hover:text-slate-400 transition-colors"

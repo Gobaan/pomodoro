@@ -321,7 +321,7 @@ export function SessionPlayer() {
   if (state.isComplete || forceComplete) {
     return (
       <CompletionScreen
-        totalCycles={config.totalCycles}
+        totalCycles={completedCycles}
         onRestart={() => {
           reset()
           setForceComplete(false)

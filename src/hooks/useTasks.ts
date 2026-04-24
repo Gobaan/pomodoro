@@ -3,9 +3,14 @@ import { useState, useCallback } from 'react'
 export interface Task {
   id: string
   name: string
+  tag: string
   estimatedPomodoros: number
   actualPomodoros: number
   done: boolean
+}
+
+export function autoTag(name: string): string {
+  return name.trim().split(/\s+/)[0].toLowerCase().replace(/[^a-z0-9-]/g, '')
 }
 
 const STORAGE_KEY = 'pmg_tasks'
@@ -37,14 +42,20 @@ export function useTasks() {
     })
   }, [])
 
-  const addTask = useCallback((name: string, estimatedPomodoros: number) => {
+  const addTask = useCallback((name: string, estimatedPomodoros: number, tag?: string) => {
+    const trimmed = name.trim()
     update(prev => [...prev, {
       id: makeId(),
-      name: name.trim(),
+      name: trimmed,
+      tag: tag?.trim() || autoTag(trimmed),
       estimatedPomodoros,
       actualPomodoros: 0,
       done: false,
     }])
+  }, [update])
+
+  const setTag = useCallback((id: string, tag: string) => {
+    update(prev => prev.map(t => t.id === id ? { ...t, tag: tag.trim() } : t))
   }, [update])
 
   const removeTask = useCallback((id: string) => {
@@ -77,6 +88,7 @@ export function useTasks() {
     removeTask,
     toggleDone,
     setActual,
+    setTag,
     clearAll,
     resetForSession,
     totalEstimated,

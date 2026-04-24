@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useTasks } from '../hooks/useTasks'
+import { useTasks, autoTag } from '../hooks/useTasks'
 
 beforeEach(() => localStorage.clear())
 afterEach(() => localStorage.clear())
@@ -20,6 +20,21 @@ describe('useTasks', () => {
     expect(t.estimatedPomodoros).toBe(2)
     expect(t.actualPomodoros).toBe(0)
     expect(t.done).toBe(false)
+    expect(t.tag).toBe('write') // auto-filled from first word
+  })
+
+  it('addTask uses provided tag when given', () => {
+    const { result } = renderHook(() => useTasks())
+    act(() => result.current.addTask('Refactor auth module', 2, 'refactor'))
+    expect(result.current.tasks[0].tag).toBe('refactor')
+  })
+
+  it('setTag updates the tag for a task', () => {
+    const { result } = renderHook(() => useTasks())
+    act(() => result.current.addTask('Fix bug', 1))
+    const id = result.current.tasks[0].id
+    act(() => result.current.setTag(id, 'bugfix'))
+    expect(result.current.tasks[0].tag).toBe('bugfix')
   })
 
   it('addTask trims whitespace from name', () => {
@@ -95,11 +110,38 @@ describe('useTasks', () => {
     expect(result.current.totalActual).toBe(4)
   })
 
+  it('persists tag to localStorage', () => {
+    const { result } = renderHook(() => useTasks())
+    act(() => result.current.addTask('Code review', 1))
+    const { result: r2 } = renderHook(() => useTasks())
+    expect(r2.current.tasks[0].tag).toBe('code')
+  })
+
   it('persists tasks to localStorage', () => {
     const { result } = renderHook(() => useTasks())
     act(() => result.current.addTask('Persisted', 2))
     const { result: r2 } = renderHook(() => useTasks())
     expect(r2.current.tasks).toHaveLength(1)
     expect(r2.current.tasks[0].name).toBe('Persisted')
+  })
+})
+
+// ─── autoTag ──────────────────────────────────────────────────────────────────
+
+describe('autoTag', () => {
+  it('returns first word lowercased', () => {
+    expect(autoTag('Write tests')).toBe('write')
+  })
+
+  it('strips non-alphanumeric characters', () => {
+    expect(autoTag('Fix: auth bug')).toBe('fix')
+  })
+
+  it('handles single word input', () => {
+    expect(autoTag('Refactor')).toBe('refactor')
+  })
+
+  it('trims leading whitespace', () => {
+    expect(autoTag('  Code review')).toBe('code')
   })
 })

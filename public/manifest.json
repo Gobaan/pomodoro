@@ -1,0 +1,17 @@
+{
+  "name": "FlowBeats",
+  "short_name": "FlowBeats",
+  "description": "Binaural beats focus timer",
+  "start_url": "/flowbeats/",
+  "scope": "/flowbeats/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/flowbeats/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ]
+}

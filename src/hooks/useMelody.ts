@@ -44,6 +44,7 @@ interface MelodyTrack {
 
 function createTrack(src: string): MelodyTrack {
   const el = new Audio(src)
+  el.loop    = true
   el.preload = 'auto'
   return { el, sourceNode: null, gainNode: null }
 }
@@ -106,7 +107,7 @@ export function useMelody() {
     return comp
   }
 
-  function getGain(track: MelodyTrack, ctx: AudioContext, key: MelodyKey): GainNode {
+  function getGain(track: MelodyTrack, ctx: AudioContext): GainNode {
     if (track.gainNode) return track.gainNode
 
     const source = ctx.createMediaElementSource(track.el)
@@ -125,32 +126,6 @@ export function useMelody() {
 
     track.sourceNode = source
     track.gainNode   = gain
-
-    if (key === 'focus') {
-      // Crossfade at loop point: fade out near end, seek to start, fade back in.
-      track.el.addEventListener('timeupdate', () => {
-        const { duration, currentTime } = track.el
-        if (!duration || !track.gainNode) return
-        const remaining = duration - currentTime
-        if (remaining < FADE_IN_S && remaining > 0) {
-          const now = ctx.currentTime
-          track.gainNode.gain.cancelScheduledValues(now)
-          track.gainNode.gain.setValueAtTime(track.gainNode.gain.value, now)
-          track.gainNode.gain.linearRampToValueAtTime(0, now + remaining)
-        }
-      })
-      track.el.addEventListener('ended', () => {
-        if (!track.gainNode) return
-        track.el.currentTime = 0
-        track.el.play().catch(() => {})
-        const now = ctx.currentTime
-        track.gainNode.gain.cancelScheduledValues(now)
-        track.gainNode.gain.setValueAtTime(0, now)
-        track.gainNode.gain.linearRampToValueAtTime(TARGET_VOLUME, now + FADE_IN_S)
-      })
-    }
-    // Break track plays once then fades to silence naturally — no loop.
-
     return gain
   }
 
@@ -163,7 +138,7 @@ export function useMelody() {
 
   function fadeIn(key: MelodyKey, track: MelodyTrack, ctx: AudioContext) {
     clearPauseTimer(key)  // cancel any pending pause from a prior fade-out
-    const gain = getGain(track, ctx, key)
+    const gain = getGain(track, ctx)
     const now  = ctx.currentTime
     gain.gain.cancelScheduledValues(now)
     gain.gain.setValueAtTime(gain.gain.value, now)

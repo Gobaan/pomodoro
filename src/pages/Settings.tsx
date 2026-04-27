@@ -90,9 +90,9 @@ export function Settings() {
 
         <div className="bg-white/5 rounded-xl p-5 border border-white/10 flex flex-col">
           <h2 className="text-base font-semibold text-white mb-1">Work Block</h2>
-          <NumField label="Total work duration" sublabel="Warm-up + focus + cool-down" value={config.workMinutes} min={10} max={60} onChange={v => update('workMinutes', v)} />
-          <NumField label="Warm-up" sublabel={`Alpha waves — ${config.warmupMinutes}m`} value={config.warmupMinutes} min={1} max={10} onChange={v => update('warmupMinutes', v)} />
-          <NumField label="Cool-down" sublabel={`Alpha waves — ${config.cooldownMinutes}m`} value={config.cooldownMinutes} min={1} max={10} onChange={v => update('cooldownMinutes', v)} />
+          <NumField label="Total work duration" sublabel="Warm-up + focus + cool-down" value={config.workMinutes} min={5} max={480} onChange={v => update('workMinutes', v)} />
+          <NumField label="Warm-up" sublabel={`Alpha waves — ${config.warmupMinutes}m`} value={config.warmupMinutes} min={1} max={60} onChange={v => update('warmupMinutes', v)} />
+          <NumField label="Cool-down" sublabel={`Alpha waves — ${config.cooldownMinutes}m`} value={config.cooldownMinutes} min={1} max={60} onChange={v => update('cooldownMinutes', v)} />
           <div className="pt-3 text-xs text-slate-500 text-center">
             Deep focus: <span className="text-violet-400 font-mono">{Math.max(0, focusMinutes)}m</span> of Beta waves
           </div>
@@ -100,14 +100,14 @@ export function Settings() {
 
         <div className="bg-white/5 rounded-xl p-5 border border-white/10 flex flex-col">
           <h2 className="text-base font-semibold text-white mb-1">Breaks</h2>
-          <NumField label="Short break" value={config.shortBreakMinutes} min={1} max={30} onChange={v => update('shortBreakMinutes', v)} />
-          <NumField label="Long break" sublabel="After every N cycles" value={config.longBreakMinutes} min={5} max={60} onChange={v => update('longBreakMinutes', v)} />
-          <NumField label="Cycles before long break" value={config.cyclesBeforeLongBreak} min={2} max={8} onChange={v => update('cyclesBeforeLongBreak', v)} />
+          <NumField label="Short break" value={config.shortBreakMinutes} min={1} max={120} onChange={v => update('shortBreakMinutes', v)} />
+          <NumField label="Long break" sublabel="After every N cycles" value={config.longBreakMinutes} min={1} max={240} onChange={v => update('longBreakMinutes', v)} />
+          <NumField label="Cycles before long break" value={config.cyclesBeforeLongBreak} min={1} max={99} onChange={v => update('cyclesBeforeLongBreak', v)} />
         </div>
 
         <div className="bg-white/5 rounded-xl p-5 border border-white/10 flex flex-col">
           <h2 className="text-base font-semibold text-white mb-1">Session Length</h2>
-          <NumField label="Total focus cycles" value={config.totalCycles} min={1} max={12} onChange={v => update('totalCycles', v)} />
+          <NumField label="Total focus cycles" value={config.totalCycles} min={1} max={99} onChange={v => update('totalCycles', v)} />
         </div>
 
         <div className="bg-white/5 rounded-xl p-5 border border-white/10 flex flex-col gap-3">

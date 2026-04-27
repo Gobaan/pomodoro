@@ -238,6 +238,23 @@ Never gate the core timer behind any of these. Each feature is layered on top of
 
 ---
 
+## Planned: PWA install prompt [ ]
+
+Show an "Install app" prompt on Android (Chrome's beforeinstallprompt event) and guide iOS users through Share → Add to Home Screen. Prerequisite for reliable Web Push notifications on iOS.
+
+---
+
+## Planned: Scheduled daily notifications [ ]
+
+Replace the post-session one-off reminder with a recurring daily schedule:
+- User picks days of week (default: Mon–Fri) and a time (default: 09:00)
+- Uses Web Push (VAPID) so notifications fire even when browser is closed
+- Requires PWA install on iOS; works in background on Android Chrome/Firefox
+- Server stores subscription + schedule, cron job fires the push daily
+- Deep-link click opens app and auto-starts session
+
+---
+
 ## Audio Resilience — Test Cases [x]
 
 Browser focus/blur events can suspend or kill HTML5 Audio playback. These cases must have test coverage.

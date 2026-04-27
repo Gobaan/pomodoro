@@ -450,11 +450,13 @@ export function SessionPlayer() {
       if (pos) {
         jumpToSegment(pos.index)
         seekInSegment(pos.segmentElapsed)
-        // Session was already running before the reload — the refresh itself is a user
-        // gesture so autoplay is permitted. Skip the probe and always start audio.
-        startBeats(segments[pos.index].phase)
-        startAmbient(segments[pos.index].phase)
         setMediaSession('playing', `FlowBeats — ${PHASE_LABELS[segments[pos.index].phase]}`)
+        // Attempt audio immediately; if autoplay is blocked, retry on first tap.
+        const phase = segments[pos.index].phase
+        const tryAudio = () => { startBeats(phase); startAmbient(phase) }
+        tryAudio()
+        document.addEventListener('click', tryAudio, { once: true })
+        document.addEventListener('touchend', tryAudio, { once: true })
         return
       }
       // Elapsed time exceeds session length — treat as complete.
@@ -466,6 +468,9 @@ export function SessionPlayer() {
     // Normal startup.
     if (plannerEnabled) return
     if (audioAllowed) handleStart()
+
+    // Clear saved session on unmount so navigating to Settings then back starts fresh.
+    return () => localStorage.removeItem(SESSION_ACTIVE_KEY)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function setMediaSession(state: 'playing' | 'paused' | 'none', title = 'FlowBeats — Focus Session') {

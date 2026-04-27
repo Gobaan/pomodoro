@@ -10,10 +10,11 @@ export interface VideoConfig {
   videoId: string
 }
 
+export const WARMUP_MINUTES   = 3
+export const COOLDOWN_MINUTES = 2
+
 export interface SessionConfig {
   workMinutes: number
-  warmupMinutes: number
-  cooldownMinutes: number
   shortBreakMinutes: number
   longBreakMinutes: number
   cyclesBeforeLongBreak: number
@@ -46,8 +47,6 @@ export const DEFAULT_VIDEOS: Record<VideoKey, VideoConfig> = {
 
 export const DEFAULT_SESSION_CONFIG: SessionConfig = {
   workMinutes: 25,
-  warmupMinutes: 3,
-  cooldownMinutes: 2,
   shortBreakMinutes: 5,
   longBreakMinutes: 20,
   cyclesBeforeLongBreak: 4,

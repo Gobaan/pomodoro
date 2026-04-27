@@ -1,4 +1,5 @@
 import type { SessionConfig, PhaseSegment, StageKey } from '../types'
+import { WARMUP_MINUTES, COOLDOWN_MINUTES } from '../types'
 
 /**
  * Build a flat array of PhaseSegments for an entire session.
@@ -14,17 +15,8 @@ import type { SessionConfig, PhaseSegment, StageKey } from '../types'
  * display purposes only — audio elements maintain their own playback position.
  */
 export function buildSchedule(config: SessionConfig): PhaseSegment[] {
-  const {
-    totalCycles,
-    cyclesBeforeLongBreak,
-    workMinutes,
-    warmupMinutes,
-    cooldownMinutes,
-    shortBreakMinutes,
-    longBreakMinutes,
-  } = config
-
-  const focusMinutes = workMinutes - warmupMinutes - cooldownMinutes
+  const { totalCycles, cyclesBeforeLongBreak, workMinutes, shortBreakMinutes, longBreakMinutes } = config
+  const focusMinutes = workMinutes - WARMUP_MINUTES - COOLDOWN_MINUTES
 
   // Track cumulative seconds played per stage (for display metadata)
   const offsets: Record<StageKey, number> = { focus: 0, cooldown: 0, break: 0 }
@@ -44,9 +36,9 @@ export function buildSchedule(config: SessionConfig): PhaseSegment[] {
   }
 
   for (let i = 0; i < totalCycles; i++) {
-    push('warmup', 'focus', warmupMinutes, i)
+    push('warmup', 'focus', WARMUP_MINUTES, i)
     push('focus', 'focus', focusMinutes, i)
-    push('cooldown', 'cooldown', cooldownMinutes, i)
+    push('cooldown', 'cooldown', COOLDOWN_MINUTES, i)
 
     const isLastCycle = i === totalCycles - 1
     const isLongBreakCycle = (i + 1) % cyclesBeforeLongBreak === 0

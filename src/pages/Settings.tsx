@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { SessionConfig } from '../types'
-import { DEFAULT_SESSION_CONFIG } from '../types'
+import { DEFAULT_SESSION_CONFIG, WARMUP_MINUTES, COOLDOWN_MINUTES } from '../types'
 import { usePlannerUnlock } from '../hooks/usePlannerUnlock'
 
 const STORAGE_KEY = 'pmg_session_config'
@@ -70,26 +70,10 @@ export function Settings() {
     })
   }
 
-  const focusMinutes = Math.max(1, config.workMinutes - config.warmupMinutes - config.cooldownMinutes)
+  const focusMinutes = Math.max(1, config.workMinutes - WARMUP_MINUTES - COOLDOWN_MINUTES)
 
   function updateFocus(focus: number) {
-    update('workMinutes', focus + config.warmupMinutes + config.cooldownMinutes)
-  }
-
-  function updateWarmup(warmup: number) {
-    setConfig(prev => {
-      const next = { ...prev, warmupMinutes: warmup, workMinutes: focusMinutes + warmup + prev.cooldownMinutes }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      return next
-    })
-  }
-
-  function updateCooldown(cooldown: number) {
-    setConfig(prev => {
-      const next = { ...prev, cooldownMinutes: cooldown, workMinutes: focusMinutes + prev.warmupMinutes + cooldown }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      return next
-    })
+    update('workMinutes', focus + WARMUP_MINUTES + COOLDOWN_MINUTES)
   }
 
   return (
@@ -111,8 +95,6 @@ export function Settings() {
         <div className="bg-white/5 rounded-xl p-5 border border-white/10 flex flex-col">
           <h2 className="text-base font-semibold text-white mb-1">Work Block</h2>
           <NumField label="Focus" sublabel="Beta waves — active concentration" value={focusMinutes} min={1} max={480} onChange={updateFocus} />
-          <NumField label="Warm-up" sublabel="Alpha waves — eases you in" value={config.warmupMinutes} min={1} max={60} onChange={updateWarmup} />
-          <NumField label="Cool-down" sublabel="Alpha waves — winds you down" value={config.cooldownMinutes} min={1} max={60} onChange={updateCooldown} />
         </div>
 
         <div className="bg-white/5 rounded-xl p-5 border border-white/10 flex flex-col">

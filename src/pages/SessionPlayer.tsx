@@ -384,6 +384,7 @@ export function SessionPlayer() {
       if (shouldPingOnPhase(segment.phase)) ping()
       startBeats(segment.phase)
       startAmbient(segment.phase)
+      setMediaSession('playing', `FlowBeats — ${PHASE_LABELS[segment.phase]}`)
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [startBeats, ping],
@@ -391,6 +392,7 @@ export function SessionPlayer() {
 
   const handleComplete = useCallback(() => {
     localStorage.removeItem(SESSION_ACTIVE_KEY)
+    setMediaSession('none')
     stopBeats()
     stopAmbient()
     analytics.sessionComplete({ cycles: config.totalCycles, audioMode: audioModeRef.current })
@@ -409,8 +411,9 @@ export function SessionPlayer() {
       suspendBeats()
       suspendNoise()
       suspendMelody()
+      setMediaSession('paused')
     }
-  }, [state.isPaused, suspendBeats, suspendNoise, suspendMelody])
+  }, [state.isPaused, suspendBeats, suspendNoise, suspendMelody]) // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // Kill all audio on unmount
@@ -464,12 +467,25 @@ export function SessionPlayer() {
     if (audioAllowed) handleStart()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  function setMediaSession(state: 'playing' | 'paused' | 'none', title = 'FlowBeats — Focus Session') {
+    if (!('mediaSession' in navigator)) return
+    if (state === 'none') {
+      navigator.mediaSession.playbackState = 'none'
+      return
+    }
+    navigator.mediaSession.metadata = new MediaMetadata({ title, artist: 'FlowBeats' })
+    navigator.mediaSession.playbackState = state
+    navigator.mediaSession.setActionHandler('play',  () => handleResume())
+    navigator.mediaSession.setActionHandler('pause', () => { pause(); setMediaSession('paused') })
+  }
+
   function handleStart() {
     localStorage.setItem(SESSION_ACTIVE_KEY, new Date().toISOString())
     resetForSession()
     start()
     startBeats(segments[0].phase)
     startAmbient(segments[0].phase)
+    setMediaSession('playing')
     analytics.sessionStart({
       cycles:    config.totalCycles,
       focusMin:  config.workMinutes,
@@ -482,6 +498,7 @@ export function SessionPlayer() {
     resumeBeats()
     if (audioMode === 'noise')  resumeNoise()
     if (audioMode === 'melody') resumeMelody()
+    setMediaSession('playing')
   }
 
   function cycleMode() {

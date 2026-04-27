@@ -371,6 +371,11 @@ export function SessionPlayer() {
   }
 
   function stopAmbient() {
+    if (audioRetryRef.current) {
+      document.removeEventListener('click', audioRetryRef.current)
+      document.removeEventListener('touchend', audioRetryRef.current)
+      audioRetryRef.current = null
+    }
     stopNoise()
     stopMelody()
   }
@@ -455,6 +460,7 @@ export function SessionPlayer() {
         const phase = segments[pos.index].phase
         const tryAudio = () => { startBeats(phase); startAmbient(phase) }
         tryAudio()
+        audioRetryRef.current = tryAudio
         document.addEventListener('click', tryAudio, { once: true })
         document.addEventListener('touchend', tryAudio, { once: true })
         return
@@ -519,6 +525,7 @@ export function SessionPlayer() {
   const [forceComplete, setForceComplete] = useState(false)
   const forceCompleteRef = useRef(false)
   forceCompleteRef.current = forceComplete
+  const audioRetryRef = useRef<(() => void) | null>(null)
 
   useVisibilityResume(
     useCallback(() => {

@@ -150,7 +150,7 @@ export function Settings() {
           onClick={() => navigate('/')}
           className="w-full py-4 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-semibold text-lg transition-colors"
         >
-          Start Session →
+          {localStorage.getItem('pmg_session_active') ? 'Continue Session →' : 'Start Session →'}
         </button>
 
         <button onClick={() => navigate('/about')} className="text-xs text-slate-700 hover:text-slate-500 transition-colors pb-2">

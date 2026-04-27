@@ -257,6 +257,14 @@ function CompletionScreen({
         </button>
       </div>
 
+      <p className="text-xs text-slate-700 text-center leading-relaxed">
+        Melody tracks by{' '}
+        <a href="https://freemusicarchive.org/music/lee-rosevere" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-500 transition-colors">
+          Lee Rosevere
+        </a>
+        {' '}— CC BY 4.0
+      </p>
+
       {/* Feedback modal */}
       {feedbackOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-50"

@@ -152,6 +152,14 @@ export function Settings() {
         >
           Start Session →
         </button>
+
+        <p className="text-xs text-slate-700 text-center leading-relaxed pb-2">
+          Melody tracks "Compassion (keys version)" &amp; "Decompress" by{' '}
+          <a href="https://freemusicarchive.org/music/lee-rosevere" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-500 transition-colors">
+            Lee Rosevere
+          </a>
+          {' '}— CC BY 4.0
+        </p>
       </div>
     </div>
   )

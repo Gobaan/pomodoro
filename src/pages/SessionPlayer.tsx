@@ -450,10 +450,11 @@ export function SessionPlayer() {
       if (pos) {
         jumpToSegment(pos.index)
         seekInSegment(pos.segmentElapsed)
-        if (audioAllowed) {
-          startBeats(segments[pos.index].phase)
-          startAmbient(segments[pos.index].phase)
-        }
+        // Session was already running before the reload — the refresh itself is a user
+        // gesture so autoplay is permitted. Skip the probe and always start audio.
+        startBeats(segments[pos.index].phase)
+        startAmbient(segments[pos.index].phase)
+        setMediaSession('playing', `FlowBeats — ${PHASE_LABELS[segments[pos.index].phase]}`)
         return
       }
       // Elapsed time exceeds session length — treat as complete.
@@ -537,7 +538,7 @@ export function SessionPlayer() {
         onAdd={addTask}
         onRemove={removeTask}
         onSetTag={setTag}
-        onStart={handleStart}
+        onStart={() => { if (tasks.length === 0) setPlannerEnabled(false); handleStart() }}
         onSkip={() => { setPlannerEnabled(false); handleStart() }}
       />
     )

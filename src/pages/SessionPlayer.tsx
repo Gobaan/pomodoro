@@ -19,6 +19,7 @@ import { TaskPlanner } from '../components/TaskPlanner'
 import type { ProgressStats } from '../hooks/useProgress'
 import type { Task } from '../hooks/useTasks'
 import { buildSchedule } from '../utils/phaseSchedule'
+import { findSegmentAtElapsed } from '../utils/sessionRestore'
 import { analytics } from '../utils/analytics'
 import type { SessionConfig, PhaseSegment, PhaseType } from '../types'
 import { DEFAULT_SESSION_CONFIG } from '../types'
@@ -319,21 +320,6 @@ function CompletionScreen({
 
 const SESSION_CONFIG_KEY  = 'pmg_session_config'
 const SESSION_ACTIVE_KEY  = 'pmg_session_active' // wall-clock start ISO for tab-kill recovery
-
-function findSegmentAtElapsed(
-  segments: PhaseSegment[],
-  elapsedSeconds: number,
-): { index: number; segmentElapsed: number } | null {
-  let cum = 0
-  for (let i = 0; i < segments.length; i++) {
-    const end = cum + segments[i].durationSeconds
-    if (elapsedSeconds < end) {
-      return { index: i, segmentElapsed: elapsedSeconds - cum }
-    }
-    cum = end
-  }
-  return null // elapsed exceeds total session length
-}
 
 function loadConfig(): SessionConfig {
   try {

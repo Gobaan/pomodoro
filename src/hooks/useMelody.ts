@@ -126,6 +126,14 @@ export function useMelody() {
 
     track.sourceNode = source
     track.gainNode   = gain
+
+    // el.loop is unreliable when routed through Web Audio (MediaElementSourceNode).
+    // Manually restart on 'ended' as a fallback so the track never stops mid-phase.
+    track.el.addEventListener('ended', () => {
+      track.el.currentTime = 0
+      track.el.play().catch(() => {})
+    })
+
     return gain
   }
 

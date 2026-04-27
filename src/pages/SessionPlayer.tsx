@@ -317,7 +317,23 @@ function CompletionScreen({
 
 // ─── Config loading ───────────────────────────────────────────────────────────
 
-const SESSION_CONFIG_KEY = 'pmg_session_config'
+const SESSION_CONFIG_KEY  = 'pmg_session_config'
+const SESSION_ACTIVE_KEY  = 'pmg_session_active' // wall-clock start ISO for tab-kill recovery
+
+function findSegmentAtElapsed(
+  segments: PhaseSegment[],
+  elapsedSeconds: number,
+): { index: number; segmentElapsed: number } | null {
+  let cum = 0
+  for (let i = 0; i < segments.length; i++) {
+    const end = cum + segments[i].durationSeconds
+    if (elapsedSeconds < end) {
+      return { index: i, segmentElapsed: elapsedSeconds - cum }
+    }
+    cum = end
+  }
+  return null // elapsed exceeds total session length
+}
 
 function loadConfig(): SessionConfig {
   try {
@@ -388,6 +404,7 @@ export function SessionPlayer() {
   )
 
   const handleComplete = useCallback(() => {
+    localStorage.removeItem(SESSION_ACTIVE_KEY)
     stopBeats()
     stopAmbient()
     analytics.sessionComplete({ cycles: config.totalCycles, audioMode: audioModeRef.current })
@@ -431,20 +448,38 @@ export function SessionPlayer() {
   }, [audioMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Planner enabled — skip auto-start so user can plan first.
-    if (plannerEnabled) return
-    const autostart = new URLSearchParams(window.location.search).get('autostart') === '1'
-    // AudioContext starts 'suspended' when autoplay is blocked by the browser.
-    // On return visits after prior audio interaction, it starts 'running'.
-    // Notification deep-links pass ?autostart=1 — treat as allowed since the
-    // tab was opened by user interaction (clicking the notification).
     const probe = new AudioContext()
-    const allowed = autostart || probe.state === 'running'
+    const audioAllowed = new URLSearchParams(window.location.search).get('autostart') === '1'
+      || probe.state === 'running'
     probe.close()
-    if (allowed) handleStart()
+
+    // Restore a session that was running when the tab was killed (Firefox Android).
+    const savedStart = localStorage.getItem(SESSION_ACTIVE_KEY)
+    if (savedStart) {
+      const elapsedSeconds = Math.floor((Date.now() - new Date(savedStart).getTime()) / 1000)
+      const pos = findSegmentAtElapsed(segments, elapsedSeconds)
+      if (pos) {
+        jumpToSegment(pos.index)
+        seekInSegment(pos.segmentElapsed)
+        if (audioAllowed) {
+          startBeats(segments[pos.index].phase)
+          startAmbient(segments[pos.index].phase)
+        }
+        return
+      }
+      // Elapsed time exceeds session length — treat as complete.
+      localStorage.removeItem(SESSION_ACTIVE_KEY)
+      setForceComplete(true)
+      return
+    }
+
+    // Normal startup.
+    if (plannerEnabled) return
+    if (audioAllowed) handleStart()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleStart() {
+    localStorage.setItem(SESSION_ACTIVE_KEY, new Date().toISOString())
     resetForSession()
     start()
     startBeats(segments[0].phase)
@@ -647,6 +682,7 @@ export function SessionPlayer() {
       <button
         onClick={() => {
           if (confirm('End session early?')) {
+            localStorage.removeItem(SESSION_ACTIVE_KEY)
             analytics.sessionAbandon({
               segmentsComplete: state.segmentIndex,
               segmentsTotal:    segments.length,

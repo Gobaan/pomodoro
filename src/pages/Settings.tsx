@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { SessionConfig } from '../types'
 import { DEFAULT_SESSION_CONFIG, WARMUP_MINUTES, COOLDOWN_MINUTES } from '../types'
@@ -25,6 +25,18 @@ interface NumFieldProps {
 }
 
 function NumField({ label, sublabel, value, min, max, onChange }: NumFieldProps) {
+  const [draft, setDraft] = useState(String(value))
+
+  // Keep draft in sync when value changes externally (e.g. +/- buttons)
+  useEffect(() => { setDraft(String(value)) }, [value])
+
+  function commit(raw: string) {
+    const n = parseInt(raw, 10)
+    const clamped = isNaN(n) ? value : Math.min(max, Math.max(min, n))
+    setDraft(String(clamped))
+    onChange(clamped)
+  }
+
   return (
     <div className="flex items-center justify-between py-3 border-b border-white/5">
       <div>
@@ -38,13 +50,10 @@ function NumField({ label, sublabel, value, min, max, onChange }: NumFieldProps)
         >−</button>
         <input
           type="number"
-          value={value}
-          min={min}
-          max={max}
-          onChange={e => {
-            const n = parseInt(e.target.value, 10)
-            if (!isNaN(n)) onChange(Math.min(max, Math.max(min, n)))
-          }}
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={e => commit(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
           className="w-14 text-center text-sm font-mono text-white bg-white/5 border border-white/10 rounded-lg py-1 focus:outline-none focus:border-violet-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
         <span className="text-xs text-slate-500">m</span>

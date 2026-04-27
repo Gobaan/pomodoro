@@ -31,15 +31,26 @@ function NumField({ label, sublabel, value, min, max, onChange }: NumFieldProps)
         <span className="text-sm font-medium text-white">{label}</span>
         {sublabel && <p className="text-xs text-slate-500">{sublabel}</p>}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         <button
           onClick={() => onChange(Math.max(min, value - 1))}
-          className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white text-lg flex items-center justify-center transition-colors"
+          className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors text-base"
         >−</button>
-        <span className="w-10 text-center text-sm font-mono text-white">{value}m</span>
+        <input
+          type="number"
+          value={value}
+          min={min}
+          max={max}
+          onChange={e => {
+            const n = parseInt(e.target.value, 10)
+            if (!isNaN(n)) onChange(Math.min(max, Math.max(min, n)))
+          }}
+          className="w-14 text-center text-sm font-mono text-white bg-white/5 border border-white/10 rounded-lg py-1 focus:outline-none focus:border-violet-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        />
+        <span className="text-xs text-slate-500">m</span>
         <button
           onClick={() => onChange(Math.min(max, value + 1))}
-          className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white text-lg flex items-center justify-center transition-colors"
+          className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors text-base"
         >+</button>
       </div>
     </div>

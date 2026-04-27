@@ -331,7 +331,7 @@ export function SessionPlayer() {
   const config: SessionConfig = loadConfig()
   const { recordSession, stats } = useProgress()
   const { scheduleReminder, cancelReminder, pendingAt, notificationsSupported } = useSessionReminder()
-  const { isEnabled: plannerEnabled } = usePlannerUnlock()
+  const { isEnabled: plannerEnabled, setEnabled: setPlannerEnabled } = usePlannerUnlock()
   const { tasks, addTask, removeTask, setTag, setActual, resetForSession } = useTasks()
   const { recordTasks } = useTaskHistory()
 
@@ -496,7 +496,7 @@ export function SessionPlayer() {
         onRemove={removeTask}
         onSetTag={setTag}
         onStart={handleStart}
-        onSkip={handleStart}
+        onSkip={() => { setPlannerEnabled(false); handleStart() }}
       />
     )
   }

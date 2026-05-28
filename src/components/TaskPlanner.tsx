@@ -4,7 +4,7 @@ import { autoTag } from '../hooks/useTasks'
 
 interface Props {
   tasks: Task[]
-  onAdd: (name: string, estimated: number) => void
+  onAdd: (name: string) => void
   onRemove: (id: string) => void
   onSetTag: (id: string, tag: string) => void
   onStart: () => void
@@ -57,7 +57,6 @@ function TagChip({ value, onChange }: { value: string; onChange: (v: string) => 
 
 export function TaskPlanner({ tasks, onAdd, onRemove, onSetTag, onStart, onSkip }: Props) {
   const [name, setName] = useState('')
-  const [estimate, setEstimate] = useState(1)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -76,9 +75,8 @@ export function TaskPlanner({ tasks, onAdd, onRemove, onSetTag, onStart, onSkip 
   function handleAdd() {
     const trimmed = name.trim()
     if (!trimmed) return
-    onAdd(trimmed, estimate)
+    onAdd(trimmed)
     setName('')
-    setEstimate(1)
     inputRef.current?.focus()
   }
 
@@ -107,9 +105,6 @@ export function TaskPlanner({ tasks, onAdd, onRemove, onSetTag, onStart, onSkip 
                   value={task.tag || autoTag(task.name)}
                   onChange={tag => onSetTag(task.id, tag)}
                 />
-                <span className="text-xs font-mono text-violet-400 shrink-0">
-                  {task.estimatedPomodoros} 🍅
-                </span>
                 <button
                   onClick={() => onRemove(task.id)}
                   className="text-slate-600 hover:text-slate-300 transition-colors text-sm shrink-0"
@@ -134,17 +129,6 @@ export function TaskPlanner({ tasks, onAdd, onRemove, onSetTag, onStart, onSkip 
             placeholder="What are you working on?"
             className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
           />
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => setEstimate(e => Math.max(1, e - 1))}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
-            >−</button>
-            <span className="w-6 text-center text-sm font-mono text-white">{estimate}</span>
-            <button
-              onClick={() => setEstimate(e => Math.min(10, e + 1))}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
-            >+</button>
-          </div>
           <button
             onClick={handleAdd}
             disabled={!name.trim()}

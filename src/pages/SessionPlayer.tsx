@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Timer } from '../components/Timer'
 import { PhaseIndicator } from '../components/PhaseIndicator'
@@ -12,12 +12,7 @@ import { usePing, shouldPingOnPhase } from '../hooks/usePing'
 import { useProgress } from '../hooks/useProgress'
 import { useVisibilityResume } from '../hooks/useVisibilityResume'
 import { useSessionReminder } from '../hooks/useSessionReminder'
-import { usePlannerUnlock } from '../hooks/usePlannerUnlock'
-import { useTasks } from '../hooks/useTasks'
-import { useTaskHistory } from '../hooks/useTaskHistory'
-import { TaskPlanner } from '../components/TaskPlanner'
 import type { ProgressStats } from '../hooks/useProgress'
-import type { Task } from '../hooks/useTasks'
 import { buildSchedule } from '../utils/phaseSchedule'
 import { findSegmentAtElapsed } from '../utils/sessionRestore'
 import { analytics } from '../utils/analytics'
@@ -59,7 +54,6 @@ type FeedbackStatus = 'idle' | 'sending' | 'sent' | 'error'
 function CompletionScreen({
   totalCycles, stats, onRestart,
   scheduleReminder, cancelReminder, pendingAt, notificationsSupported,
-  tasks, onSetActual, onSaveTasks, plannerEnabled,
 }: {
   totalCycles: number
   stats: ProgressStats
@@ -68,27 +62,9 @@ function CompletionScreen({
   cancelReminder: () => void
   pendingAt: string | null
   notificationsSupported: boolean
-  tasks: Task[]
-  onSetActual: (id: string, actual: number) => void
-  onSaveTasks: () => void
-  plannerEnabled: boolean
 }) {
-  const navigate = useNavigate()
-  const { getTagSummaries } = useTaskHistory()
-  const overallAccuracyPct = useMemo(() => {
-    const summaries = getTagSummaries()
-    if (summaries.length === 0) return null
-    return Math.round(summaries.reduce((s, t) => s + t.accuracyPct, 0) / summaries.length)
-  }, [getTagSummaries])
-
-  const [tasksSaved, setTasksSaved] = useState(false)
   const [reminderTime, setReminderTime] = useState('')
   const [reminderStatus, setReminderStatus] = useState<'idle' | 'denied'>('idle')
-
-  function handleSaveTasks() {
-    onSaveTasks()
-    setTasksSaved(true)
-  }
 
   async function handleSchedule() {
     if (!reminderTime) return
@@ -133,37 +109,6 @@ function CompletionScreen({
         You completed {totalCycles} focus cycle{totalCycles !== 1 ? 's' : ''}. Great work!
       </p>
 
-      {/* Per-task actuals */}
-      {plannerEnabled && tasks.length > 0 && (
-        <div className="w-full max-w-xs flex flex-col gap-2 text-left">
-          <p className="text-xs text-slate-500 px-1">How many 🍅 did each task actually take?</p>
-          {tasks.map(task => (
-            <div key={task.id} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
-              <span className="px-1.5 py-0.5 rounded-full bg-violet-900/50 border border-violet-700/40 text-violet-300 text-xs font-mono shrink-0">
-                {task.tag}
-              </span>
-              <span className="flex-1 text-sm text-white truncate">{task.name}</span>
-              <span className="text-xs text-slate-600 font-mono shrink-0">{task.estimatedPomodoros}est</span>
-              <div className="flex items-center gap-1 shrink-0">
-                <button onClick={() => onSetActual(task.id, task.actualPomodoros - 1)} className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs flex items-center justify-center transition-colors">−</button>
-                <span className="w-5 text-center text-sm font-mono text-white">{task.actualPomodoros}</span>
-                <button onClick={() => onSetActual(task.id, task.actualPomodoros + 1)} className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs flex items-center justify-center transition-colors">+</button>
-              </div>
-            </div>
-          ))}
-          {tasksSaved ? (
-            <p className="text-xs text-green-400 text-center pt-1">Saved to history ✓</p>
-          ) : (
-            <button
-              onClick={handleSaveTasks}
-              className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-sm transition-colors"
-            >
-              Save to history
-            </button>
-          )}
-        </div>
-      )}
-
       {/* Progress stats */}
       <div className="w-full max-w-xs flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-3">
@@ -178,27 +123,15 @@ function CompletionScreen({
             </div>
           ))}
         </div>
-        {overallAccuracyPct !== null && (
-          <button
-            onClick={() => navigate('/history')}
-            className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between text-left hover:bg-white/10 transition-colors"
-          >
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs text-slate-500">Estimation accuracy</span>
-              <span className="text-2xl font-bold text-white">{overallAccuracyPct}%</span>
-            </div>
-            <span className="text-xs text-slate-500">View history →</span>
-          </button>
-        )}
       </div>
 
-      {/* Reminder widget */}
-      {notificationsSupported && (
+      {/* Reminder widget — hidden until daily scheduling is implemented */}
+      {false && notificationsSupported && (
         <div className="w-full max-w-xs flex flex-col gap-2">
           {pendingAt ? (
             <div className="flex items-center justify-between bg-violet-900/30 border border-violet-700/40 rounded-xl px-4 py-3">
               <span className="text-sm text-violet-300">
-                Reminder set for {new Date(pendingAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                Reminder set for {pendingAt ? new Date(pendingAt as string).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
               </span>
               <button onClick={cancelReminder} className="text-xs text-slate-400 hover:text-white transition-colors">Cancel</button>
             </div>
@@ -258,10 +191,6 @@ function CompletionScreen({
         </button>
       </div>
 
-      <button onClick={() => navigate('/about')} className="text-xs text-slate-700 hover:text-slate-500 transition-colors">
-        Music credits →
-      </button>
-
       {/* Feedback modal */}
       {feedbackOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-50"
@@ -319,7 +248,9 @@ function CompletionScreen({
 // ─── Config loading ───────────────────────────────────────────────────────────
 
 const SESSION_CONFIG_KEY  = 'pmg_session_config'
-const SESSION_ACTIVE_KEY  = 'pmg_session_active' // wall-clock start ISO for tab-kill recovery
+const SESSION_ACTIVE_KEY  = 'pmg_session_active'  // wall-clock start ISO for tab-kill recovery
+const BINAURAL_VOLUME_KEY = 'pmg_binaural_volume'
+const STALE_SESSION_S     = 8 * 3600              // sessions older than 8 h are discarded on restore
 
 function loadConfig(): SessionConfig {
   try {
@@ -337,12 +268,9 @@ export function SessionPlayer() {
   const config: SessionConfig = loadConfig()
   const { recordSession, stats } = useProgress()
   const { scheduleReminder, cancelReminder, pendingAt, notificationsSupported } = useSessionReminder()
-  const { isEnabled: plannerEnabled, setEnabled: setPlannerEnabled } = usePlannerUnlock()
-  const { tasks, addTask, removeTask, setTag, setActual, resetForSession } = useTasks()
-  const { recordTasks } = useTaskHistory()
 
   const segments = useRef(buildSchedule(config)).current
-  const { start: startBeats, stop: stopBeats, suspend: suspendBeats, resumeCtx: resumeBeats } = useBinauralBeats()
+  const { start: startBeats, stop: stopBeats, suspend: suspendBeats, resumeCtx: resumeBeats, setVolume: setVolumeBinaural } = useBinauralBeats()
   const { start: startNoise, stop: stopNoise, suspend: suspendNoise, resumeCtx: resumeNoise, setVolume: setVolumeNoise } = useNoise()
   const { start: startMelody, stop: stopMelody, suspend: suspendMelody, resumeCtx: resumeMelody, setVolume: setVolumeMelody } = useMelody()
   const ping = usePing()
@@ -357,12 +285,20 @@ export function SessionPlayer() {
   const [ambientVolume, setAmbientVolume] = useState<number>(
     () => Number(localStorage.getItem(VOLUME_KEY) ?? 0.8)
   )
+  const [binauralVolume, setBinauralVolume] = useState<number>(
+    () => Number(localStorage.getItem(BINAURAL_VOLUME_KEY) ?? 0.5)
+  )
 
   useEffect(() => {
     localStorage.setItem(VOLUME_KEY, String(ambientVolume))
     setVolumeNoise(ambientVolume)
     setVolumeMelody(ambientVolume)
   }, [ambientVolume]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    localStorage.setItem(BINAURAL_VOLUME_KEY, String(binauralVolume))
+    setVolumeBinaural(binauralVolume)
+  }, [binauralVolume]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function startAmbient(phase: PhaseType) {
     const mode = audioModeRef.current
@@ -385,7 +321,6 @@ export function SessionPlayer() {
       // prev === null is the initial mount call before the session starts.
       // Audio for the first phase is started explicitly in handleStart.
       if (prev === null) return
-      if (forceCompleteRef.current) return
       if (shouldPingOnPhase(segment.phase)) ping()
       startBeats(segment.phase)
       startAmbient(segment.phase)
@@ -451,31 +386,29 @@ export function SessionPlayer() {
     const savedStart = localStorage.getItem(SESSION_ACTIVE_KEY)
     if (savedStart) {
       const elapsedSeconds = Math.floor((Date.now() - new Date(savedStart).getTime()) / 1000)
-      const pos = findSegmentAtElapsed(segments, elapsedSeconds)
-      if (pos) {
-        jumpToSegment(pos.index)
-        seekInSegment(pos.segmentElapsed)
-        setMediaSession('playing', `FlowBeats — ${PHASE_LABELS[segments[pos.index].phase]}`)
-        // Attempt audio immediately; if autoplay is blocked, retry on first tap.
-        const phase = segments[pos.index].phase
-        const tryAudio = () => { startBeats(phase); startAmbient(phase) }
-        tryAudio()
-        audioRetryRef.current = tryAudio
-        document.addEventListener('click', tryAudio, { once: true })
-        document.addEventListener('touchend', tryAudio, { once: true })
-        return
+      if (elapsedSeconds < STALE_SESSION_S) {
+        const pos = findSegmentAtElapsed(segments, elapsedSeconds)
+        if (pos) {
+          jumpToSegment(pos.index)
+          seekInSegment(pos.segmentElapsed)
+          setMediaSession('playing', `FlowBeats — ${PHASE_LABELS[segments[pos.index].phase]}`)
+          const phase = segments[pos.index].phase
+          const tryAudio = () => { startBeats(phase); startAmbient(phase) }
+          tryAudio()
+          audioRetryRef.current = tryAudio
+          document.addEventListener('click',    tryAudio, { once: true })
+          document.addEventListener('touchend', tryAudio, { once: true })
+          return
+        }
       }
-      // Elapsed time exceeds session length — treat as complete.
+      // Stale (>8 h) or session already completed — clear and start fresh.
       localStorage.removeItem(SESSION_ACTIVE_KEY)
-      setForceComplete(true)
-      return
     }
 
-    // Normal startup.
-    if (plannerEnabled) return
+    // Normal startup — autoplay like YouTube: works for returning users/desktop,
+    // shows Start button on first mobile visit where audio is gated.
     if (audioAllowed) handleStart()
 
-    // Clear saved session on unmount so navigating to Settings then back starts fresh.
     return () => localStorage.removeItem(SESSION_ACTIVE_KEY)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -493,7 +426,6 @@ export function SessionPlayer() {
 
   function handleStart() {
     localStorage.setItem(SESSION_ACTIVE_KEY, new Date().toISOString())
-    resetForSession()
     start()
     startBeats(segments[0].phase)
     startAmbient(segments[0].phase)
@@ -522,9 +454,6 @@ export function SessionPlayer() {
   }
 
   const [debugOpen, setDebugOpen] = useState(false)
-  const [forceComplete, setForceComplete] = useState(false)
-  const forceCompleteRef = useRef(false)
-  forceCompleteRef.current = forceComplete
   const audioRetryRef = useRef<(() => void) | null>(null)
 
   useVisibilityResume(
@@ -533,7 +462,7 @@ export function SessionPlayer() {
       if (audioModeRef.current === 'noise')  resumeNoise()
       if (audioModeRef.current === 'melody') resumeMelody()
     }, [resumeBeats, resumeNoise, resumeMelody]),
-    state.isRunning && !state.isPaused && !forceCompleteRef.current,
+    state.isRunning && !state.isPaused,
   )
 
   const isBreak = currentSegment?.phase === 'shortBreak' || currentSegment?.phase === 'longBreak'
@@ -543,20 +472,7 @@ export function SessionPlayer() {
     .filter(s => s.phase === 'cooldown')
     .length
 
-  if (plannerEnabled && !state.isRunning && !state.isPaused && !state.isComplete && !forceComplete) {
-    return (
-      <TaskPlanner
-        tasks={tasks}
-        onAdd={addTask}
-        onRemove={removeTask}
-        onSetTag={setTag}
-        onStart={() => { if (tasks.length === 0) setPlannerEnabled(false); handleStart() }}
-        onSkip={() => { setPlannerEnabled(false); handleStart() }}
-      />
-    )
-  }
-
-  if (state.isComplete || forceComplete) {
+  if (state.isComplete) {
     return (
       <CompletionScreen
         totalCycles={completedCycles}
@@ -565,15 +481,7 @@ export function SessionPlayer() {
         cancelReminder={cancelReminder}
         pendingAt={pendingAt}
         notificationsSupported={notificationsSupported}
-        tasks={tasks}
-        onSetActual={setActual}
-        onSaveTasks={() => recordTasks(tasks)}
-        plannerEnabled={plannerEnabled}
-        onRestart={() => {
-          reset()
-          setForceComplete(false)
-          handleStart()
-        }}
+        onRestart={() => { reset(); handleStart() }}
       />
     )
   }
@@ -679,20 +587,29 @@ export function SessionPlayer() {
         {modeLabel}
       </button>
 
-      {/* Ambient volume slider */}
-      {audioMode !== 'off' && (
-        <div className="flex items-center gap-3 w-full max-w-xs">
-          <span className="text-slate-500 text-sm">🔈</span>
+      {/* Volume sliders */}
+      <div className="flex flex-col gap-2 w-full max-w-xs">
+        {audioMode !== 'off' && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 w-14 text-right shrink-0">Music</span>
+            <input
+              type="range" min={0} max={1} step={0.01}
+              value={ambientVolume}
+              onChange={e => setAmbientVolume(Number(e.target.value))}
+              className="flex-1 accent-violet-500 cursor-pointer"
+            />
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-500 w-14 text-right shrink-0">Binaural</span>
           <input
-            type="range"
-            min={0} max={1} step={0.01}
-            value={ambientVolume}
-            onChange={e => setAmbientVolume(Number(e.target.value))}
+            type="range" min={0} max={1} step={0.01}
+            value={binauralVolume}
+            onChange={e => setBinauralVolume(Number(e.target.value))}
             className="flex-1 accent-violet-500 cursor-pointer"
           />
-          <span className="text-slate-500 text-sm">🔊</span>
         </div>
-      )}
+      </div>
 
       {/* Back link */}
       <button
@@ -704,17 +621,23 @@ export function SessionPlayer() {
               segmentsTotal:    segments.length,
               audioMode:        audioMode,
             })
-            pause()
             stopBeats()
             stopAmbient()
             if (completedCycles > 0) recordSession(completedCycles, completedCycles * config.workMinutes)
-            setForceComplete(true)
+            reset()
           }
         }}
         className="text-sm text-slate-600 hover:text-slate-400 transition-colors"
       >
         End session
       </button>
+
+      {/* Music attribution */}
+      <p className="text-xs text-slate-500 text-center leading-relaxed">
+        Melody: "Compassion (keys version)" &amp; "Decompress" by{' '}
+        <a href="https://freemusicarchive.org/music/lee-rosevere" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-500 transition-colors">Lee Rosevere</a>
+        {' '}— CC BY 4.0
+      </p>
 
       {/* Debug panel — dev only */}
       {import.meta.env.DEV && (

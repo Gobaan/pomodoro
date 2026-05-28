@@ -4,8 +4,6 @@ export interface Task {
   id: string
   name: string
   tag: string
-  estimatedPomodoros: number
-  actualPomodoros: number
   done: boolean
 }
 
@@ -42,14 +40,12 @@ export function useTasks() {
     })
   }, [])
 
-  const addTask = useCallback((name: string, estimatedPomodoros: number, tag?: string) => {
+  const addTask = useCallback((name: string, tag?: string) => {
     const trimmed = name.trim()
     update(prev => [...prev, {
       id: makeId(),
       name: trimmed,
       tag: tag?.trim() || autoTag(trimmed),
-      estimatedPomodoros,
-      actualPomodoros: 0,
       done: false,
     }])
   }, [update])
@@ -66,10 +62,6 @@ export function useTasks() {
     update(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t))
   }, [update])
 
-  const setActual = useCallback((id: string, actualPomodoros: number) => {
-    update(prev => prev.map(t => t.id === id ? { ...t, actualPomodoros: Math.max(0, actualPomodoros) } : t))
-  }, [update])
-
   const clearAll = useCallback(() => {
     update([])
   }, [update])
@@ -78,19 +70,5 @@ export function useTasks() {
     update([])
   }, [update])
 
-  const totalEstimated = tasks.reduce((sum, t) => sum + t.estimatedPomodoros, 0)
-  const totalActual    = tasks.reduce((sum, t) => sum + t.actualPomodoros, 0)
-
-  return {
-    tasks,
-    addTask,
-    removeTask,
-    toggleDone,
-    setActual,
-    setTag,
-    clearAll,
-    resetForSession,
-    totalEstimated,
-    totalActual,
-  }
+  return { tasks, addTask, removeTask, toggleDone, setTag, clearAll, resetForSession }
 }

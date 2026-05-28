@@ -17,6 +17,12 @@ import type { PhaseType } from '../types'
  *   focus              → Beta   18 Hz  (active concentration)
  *   shortBreak         → Theta   6 Hz  (deep relaxation)
  *   longBreak          → Theta   6 Hz
+ *
+ * Audio graph:
+ *   leftOsc  → leftGain  → leftPan(-1)  → masterGain → destination
+ *   rightOsc → rightGain → rightPan(+1) → masterGain → destination
+ *
+ * masterGain is controlled by setVolume(); per-channel gains handle fade-in/out.
  */
 
 interface PhaseBeats {
@@ -33,8 +39,8 @@ export const PHASE_BEATS: Record<PhaseType, PhaseBeats> = {
   longBreak:  { carrierHz: 200, beatHz: 6,  label: 'Theta · 6 Hz'  },
 }
 
-/** Master volume of the binaural layer (0–1). Keep low — these sit under ambient music. */
-const VOLUME = 0.10
+/** Maximum per-channel gain when slider is at full. Keep low — these sit under ambient music. */
+const MAX_BINAURAL = 0.20
 
 /** Fade-in duration in seconds when starting */
 const FADE_IN_S = 3
@@ -46,20 +52,32 @@ const FADE_OUT_S = 4
 const FREQ_RAMP_TAU = 1.5
 
 export function useBinauralBeats() {
-  const ctxRef      = useRef<AudioContext | null>(null)
-  const leftOscRef  = useRef<OscillatorNode | null>(null)
-  const rightOscRef = useRef<OscillatorNode | null>(null)
-  const leftGainRef = useRef<GainNode | null>(null)
-  const rightGainRef= useRef<GainNode | null>(null)
-  const runningRef  = useRef(false)
+  const ctxRef        = useRef<AudioContext | null>(null)
+  const leftOscRef    = useRef<OscillatorNode | null>(null)
+  const rightOscRef   = useRef<OscillatorNode | null>(null)
+  const leftGainRef   = useRef<GainNode | null>(null)
+  const rightGainRef  = useRef<GainNode | null>(null)
+  const masterGainRef = useRef<GainNode | null>(null)
+  const runningRef    = useRef(false)
+  const userVolumeRef = useRef(0.5)  // default: mid-slider → 0.10 effective gain
 
   // ─── Audio context ────────────────────────────────────────────────────────
 
   function getCtx(): AudioContext {
     if (!ctxRef.current || ctxRef.current.state === 'closed') {
       ctxRef.current = new AudioContext()
+      masterGainRef.current = null  // reset on new context
     }
     return ctxRef.current
+  }
+
+  function getMasterGain(ctx: AudioContext): GainNode {
+    if (masterGainRef.current) return masterGainRef.current
+    const master = ctx.createGain()
+    master.gain.value = userVolumeRef.current
+    master.connect(ctx.destination)
+    masterGainRef.current = master
+    return master
   }
 
   // ─── Public API ───────────────────────────────────────────────────────────
@@ -74,6 +92,8 @@ export function useBinauralBeats() {
 
     if (ctx.state === 'suspended') ctx.resume()
 
+    const master = getMasterGain(ctx)
+
     if (runningRef.current) {
       // Already running — ramp to new frequencies without a click
       const now = ctx.currentTime
@@ -84,13 +104,8 @@ export function useBinauralBeats() {
 
     // ── Build audio graph ──────────────────────────────────────────────────
     //
-    //   leftOsc (carrierHz)        → leftGain  → leftPan (-1) → destination
-    //   rightOsc (carrier+beatHz)  → rightGain → rightPan(+1) → destination
-    //
-    // Panning hard left/right means:
-    //   left ear  receives ONLY leftOsc
-    //   right ear receives ONLY rightOsc
-    // The brain perceives the beat = rightFreq - leftFreq.
+    //   leftOsc (carrierHz)        → leftGain  → leftPan (-1) → masterGain → destination
+    //   rightOsc (carrier+beatHz)  → rightGain → rightPan(+1) → masterGain → destination
 
     const leftPan  = ctx.createStereoPanner()
     const rightPan = ctx.createStereoPanner()
@@ -100,11 +115,11 @@ export function useBinauralBeats() {
     const leftGain  = ctx.createGain()
     const rightGain = ctx.createGain()
 
-    // Start silent, ramp up to target volume
+    // Per-channel gains fade in to MAX_BINAURAL; masterGain controls user volume
     leftGain.gain.setValueAtTime(0, ctx.currentTime)
-    leftGain.gain.linearRampToValueAtTime(VOLUME, ctx.currentTime + FADE_IN_S)
+    leftGain.gain.linearRampToValueAtTime(MAX_BINAURAL, ctx.currentTime + FADE_IN_S)
     rightGain.gain.setValueAtTime(0, ctx.currentTime)
-    rightGain.gain.linearRampToValueAtTime(VOLUME, ctx.currentTime + FADE_IN_S)
+    rightGain.gain.linearRampToValueAtTime(MAX_BINAURAL, ctx.currentTime + FADE_IN_S)
 
     const leftOsc  = ctx.createOscillator()
     const rightOsc = ctx.createOscillator()
@@ -115,11 +130,11 @@ export function useBinauralBeats() {
 
     leftOsc.connect(leftGain)
     leftGain.connect(leftPan)
-    leftPan.connect(ctx.destination)
+    leftPan.connect(master)
 
     rightOsc.connect(rightGain)
     rightGain.connect(rightPan)
-    rightPan.connect(ctx.destination)
+    rightPan.connect(master)
 
     leftOsc.start()
     rightOsc.start()
@@ -137,23 +152,26 @@ export function useBinauralBeats() {
     const ctx = ctxRef.current
     const lg  = leftGainRef.current
     const rg  = rightGainRef.current
+    const lo  = leftOscRef.current
+    const ro  = rightOscRef.current
     if (!ctx || !lg || !rg) return
 
+    // Mark stopped immediately so start() can create fresh oscillators without
+    // entering the "already running" ramp branch on a still-fading graph.
+    runningRef.current   = false
+    leftOscRef.current   = null
+    rightOscRef.current  = null
+    leftGainRef.current  = null
+    rightGainRef.current = null
+
     const now = ctx.currentTime
-    // Exponential-style fade via setTargetAtTime (time constant = FADE_OUT_S/3)
     lg.gain.setTargetAtTime(0, now, FADE_OUT_S / 3)
     rg.gain.setTargetAtTime(0, now, FADE_OUT_S / 3)
 
-    const stopAfterMs = FADE_OUT_S * 1000 + 200
     setTimeout(() => {
-      try { leftOscRef.current?.stop()  } catch { /* already stopped */ }
-      try { rightOscRef.current?.stop() } catch { /* already stopped */ }
-      leftOscRef.current  = null
-      rightOscRef.current = null
-      leftGainRef.current  = null
-      rightGainRef.current = null
-      runningRef.current = false
-    }, stopAfterMs)
+      try { lo?.stop() } catch { /* already stopped */ }
+      try { ro?.stop() } catch { /* already stopped */ }
+    }, FADE_OUT_S * 1000 + 200)
   }, [])
 
   /**
@@ -169,5 +187,17 @@ export function useBinauralBeats() {
     ctxRef.current?.resume()
   }, [])
 
-  return { start, stop, suspend, resumeCtx }
+  /** Adjust the binaural volume (0–1). Takes effect immediately. */
+  const setVolume = useCallback((v: number) => {
+    userVolumeRef.current = v
+    if (masterGainRef.current) {
+      masterGainRef.current.gain.setTargetAtTime(
+        v,
+        masterGainRef.current.context.currentTime,
+        0.05,
+      )
+    }
+  }, [])
+
+  return { start, stop, suspend, resumeCtx, setVolume }
 }

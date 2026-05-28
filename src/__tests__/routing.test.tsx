@@ -11,9 +11,6 @@ vi.mock('../pages/Settings', () => ({
 vi.mock('../pages/About', () => ({
   About: () => <div data-testid="about">About</div>,
 }))
-vi.mock('../pages/History', () => ({
-  History: () => <div data-testid="history">History</div>,
-}))
 vi.mock('../pages/AudioTest', () => ({
   AudioTest: () => <div data-testid="audio-test">AudioTest</div>,
 }))
@@ -32,8 +29,6 @@ describe('App routing with basename /flowbeats', () => {
   })
 
   it('renders SessionPlayer for old /flowbeats/player — Android resume deep-link still lands correctly', () => {
-    // /player no longer exists; catch-all redirects to /, which renders SessionPlayer.
-    // Without basename="/flowbeats", the router would have redirected outside the app entirely.
     window.history.pushState({}, '', '/flowbeats/player')
     render(<App />)
     expect(screen.getByTestId('session-player')).toBeInTheDocument()
@@ -49,12 +44,6 @@ describe('App routing with basename /flowbeats', () => {
     window.history.pushState({}, '', '/flowbeats/about')
     render(<App />)
     expect(screen.getByTestId('about')).toBeInTheDocument()
-  })
-
-  it('renders History at /flowbeats/history', () => {
-    window.history.pushState({}, '', '/flowbeats/history')
-    render(<App />)
-    expect(screen.getByTestId('history')).toBeInTheDocument()
   })
 
   it('redirects unknown paths within /flowbeats to SessionPlayer', () => {

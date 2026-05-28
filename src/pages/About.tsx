@@ -87,18 +87,6 @@ export function About() {
           Settings →
         </button>
 
-        <p className="text-xs text-slate-600 text-center leading-relaxed">
-          Melody tracks "Compassion (keys version)" &amp; "Decompress" by{' '}
-          <a
-            href="https://freemusicarchive.org/music/lee-rosevere"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-slate-400 transition-colors"
-          >
-            Lee Rosevere
-          </a>
-          {' '}— CC BY 4.0
-        </p>
       </div>
     </div>
   )

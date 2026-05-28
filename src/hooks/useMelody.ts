@@ -223,11 +223,8 @@ export function useMelody() {
     if (!key) return
     const ctx    = getCtx()
     const tracks = getTracks()
-    if (ctx.state === 'suspended') {
-      ctx.resume()
-      // Only fade in if the element was actually paused by a suspension
-      if (tracks[key].el.paused) fadeIn(key, tracks[key], ctx)
-    }
+    if (ctx.state === 'suspended') ctx.resume()
+    if (tracks[key].el.paused) fadeIn(key, tracks[key], ctx)
   }, [])
 
   const setVolume = useCallback((v: number) => {

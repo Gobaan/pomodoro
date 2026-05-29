@@ -614,18 +614,16 @@ export function SessionPlayer() {
       {/* Back link */}
       <button
         onClick={() => {
-          if (confirm('End session early?')) {
-            localStorage.removeItem(SESSION_ACTIVE_KEY)
-            analytics.sessionAbandon({
-              segmentsComplete: state.segmentIndex,
-              segmentsTotal:    segments.length,
-              audioMode:        audioMode,
-            })
-            stopBeats()
-            stopAmbient()
-            if (completedCycles > 0) recordSession(completedCycles, completedCycles * config.workMinutes)
-            reset()
-          }
+          localStorage.removeItem(SESSION_ACTIVE_KEY)
+          analytics.sessionAbandon({
+            segmentsComplete: state.segmentIndex,
+            segmentsTotal:    segments.length,
+            audioMode:        audioMode,
+          })
+          stopBeats()
+          stopAmbient()
+          if (completedCycles > 0) recordSession(completedCycles, completedCycles * config.workMinutes)
+          reset()
         }}
         className="text-sm text-slate-600 hover:text-slate-400 transition-colors"
       >
